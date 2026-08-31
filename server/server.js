@@ -2,12 +2,14 @@
  * KEYFE KEDER RADYO
  * SERVER / STREAM GATEWAY
  *
+ * VERSION 5.1.0
+ *
  * Compatible with:
  * - Local Windows development
  * - Linux hosting
  * - PORT environment variable
- * - db.js (ES Module)
- * - auth.js (ES Module)
+ * - db.js ES Module
+ * - auth.js ES Module
  * - stations.json
  * - web/public/stations.json
  * - FFmpeg optional
@@ -49,11 +51,16 @@ import {
   verifyPassword,
   signToken,
   requireAuth,
-  optionalAuth,
   validateRegister,
   validateLogin,
   safeUser,
 } from "./auth.js";
+
+/* =========================================================
+   VERSION
+========================================================= */
+
+const APP_VERSION = "5.1.0";
 
 /* =========================================================
    PATHS
@@ -63,24 +70,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /*
- * server.js
- *    ↓ ..
- * web
- *    ↓ ..
- * KeyfeKederRadyo-Web
+ * server/server.js
+ *
+ * __dirname:
+ *   /home/.../app/server
+ *
+ * ROOT:
+ *   /home/.../app
+ *
+ * ÖNEMLİ:
+ * Eski sürüm "..", ".." ile proje kökünden
+ * bir klasör fazla yukarı çıkıyordu.
  */
 
-const ROOT = path.resolve(__dirname, "..", "..");
+const ROOT = path.resolve(__dirname, "..");
 
-const WEB = path.join(
-  ROOT,
-  "web"
-);
+const WEB = path.join(ROOT, "web");
 
-const PUBLIC = path.join(
-  WEB,
-  "public"
-);
+const PUBLIC = path.join(WEB, "public");
 
 const ROOT_STATIONS = path.join(
   ROOT,
@@ -97,23 +104,16 @@ const UPDATER = path.join(
   "station_updater.py"
 );
 
+const AUTO_UPDATER = path.join(
+  ROOT,
+  "station_auto_update.py"
+);
+
 /* =========================================================
    PORT
 ========================================================= */
 
-/*
- * Host PORT'u otomatik verir.
- *
- * Örneğin:
- * PORT=22021
- *
- * Lokal bilgisayarda PORT verilmemişse:
- * 8787
- */
-
-const ENV_PORT = Number(
-  process.env.PORT
-);
+const ENV_PORT = Number(process.env.PORT);
 
 const PORT =
   Number.isInteger(ENV_PORT) &&
@@ -121,10 +121,6 @@ const PORT =
   ENV_PORT <= 65535
     ? ENV_PORT
     : 8787;
-
-/*
- * Hosting platformları için 0.0.0.0 şart.
- */
 
 const HOST = "0.0.0.0";
 
@@ -169,9 +165,7 @@ function parseUrl(raw) {
       return null;
     }
 
-    const url = new URL(
-      raw.trim()
-    );
+    const url = new URL(raw.trim());
 
     if (
       url.protocol !== "http:" &&
@@ -193,10 +187,7 @@ function countStations(file) {
     }
 
     const data = JSON.parse(
-      fs.readFileSync(
-        file,
-        "utf8"
-      )
+      fs.readFileSync(file, "utf8")
     );
 
     return Array.isArray(data)
@@ -204,6 +195,14 @@ function countStations(file) {
       : 0;
   } catch {
     return 0;
+  }
+}
+
+function fileExists(file) {
+  try {
+    return fs.existsSync(file);
+  } catch {
+    return false;
   }
 }
 
@@ -216,6 +215,59 @@ function sendError(
     ok: false,
     success: false,
     error: message,
+  });
+}
+
+function isExecutableAvailable(command) {
+  return new Promise((resolve) => {
+    try {
+      const child = spawn(
+        command,
+        ["-version"],
+        {
+          stdio: [
+            "ignore",
+            "ignore",
+            "ignore",
+          ],
+          windowsHide: true,
+        }
+      );
+
+      let settled = false;
+
+      const finish = (value) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        resolve(value);
+      };
+
+      child.on(
+        "error",
+        () => finish(false)
+      );
+
+      child.on(
+        "close",
+        (code) =>
+          finish(
+            code === 0
+          )
+      );
+
+      setTimeout(() => {
+        try {
+          child.kill();
+        } catch {}
+
+        finish(false);
+      }, 3000).unref();
+    } catch {
+      resolve(false);
+    }
   });
 }
 
@@ -233,9 +285,19 @@ function requestFollowingRedirects(
   let redirectCount = 0;
   let currentRequest = null;
   let destroyed = false;
+  let completed = false;
+
+  function fail(error) {
+    if (completed || destroyed) {
+      return;
+    }
+
+    completed = true;
+    onError(error);
+  }
 
   function makeRequest(urlObj) {
-    if (destroyed) {
+    if (destroyed || completed) {
       return;
     }
 
@@ -244,8 +306,10 @@ function requestFollowingRedirects(
         ? https
         : http;
 
-    currentRequest =
-      transport.get(
+    let request;
+
+    try {
+      request = transport.get(
         urlObj.href,
         {
           headers,
@@ -274,7 +338,7 @@ function requestFollowingRedirects(
               redirectCount >=
               maxRedirects
             ) {
-              onError(
+              fail(
                 new Error(
                   "Çok fazla yönlendirme."
                 )
@@ -288,13 +352,12 @@ function requestFollowingRedirects(
             let nextUrl;
 
             try {
-              nextUrl =
-                new URL(
-                  location,
-                  urlObj
-                );
+              nextUrl = new URL(
+                location,
+                urlObj
+              );
             } catch {
-              onError(
+              fail(
                 new Error(
                   "Geçersiz yönlendirme adresi."
                 )
@@ -309,7 +372,7 @@ function requestFollowingRedirects(
               nextUrl.protocol !==
                 "https:"
             ) {
-              onError(
+              fail(
                 new Error(
                   "Desteklenmeyen yönlendirme protokolü."
                 )
@@ -318,12 +381,12 @@ function requestFollowingRedirects(
               return;
             }
 
-            makeRequest(
-              nextUrl
-            );
+            makeRequest(nextUrl);
 
             return;
           }
+
+          completed = true;
 
           onResponse(
             upstream,
@@ -332,28 +395,37 @@ function requestFollowingRedirects(
         }
       );
 
-    currentRequest.on(
-      "error",
-      onError
-    );
+      currentRequest = request;
 
-    currentRequest.on(
-      "timeout",
-      () => {
-        try {
-          currentRequest.destroy(
+      request.on(
+        "error",
+        fail
+      );
+
+      request.on(
+        "timeout",
+        () => {
+          try {
+            request.destroy(
+              new Error(
+                "Upstream timeout."
+              )
+            );
+          } catch {}
+
+          fail(
             new Error(
               "Upstream timeout."
             )
           );
-        } catch {}
-      }
-    );
+        }
+      );
+    } catch (error) {
+      fail(error);
+    }
   }
 
-  makeRequest(
-    targetUrl
-  );
+  makeRequest(targetUrl);
 
   return {
     destroy() {
@@ -377,8 +449,9 @@ app.get(
       ok: true,
       service:
         "keyfe-keder-radyo-gateway",
-      version: "5.0.0",
+      version: APP_VERSION,
       port: PORT,
+      host: HOST,
       environment:
         process.env.NODE_ENV ||
         "development",
@@ -394,39 +467,58 @@ app.get(
 
 app.get(
   "/api/health",
-  (_req, res) => {
+  async (_req, res) => {
+    const ffmpegCommand =
+      process.env.FFMPEG_PATH ||
+      "ffmpeg";
+
+    const ffmpeg =
+      await isExecutableAvailable(
+        ffmpegCommand
+      );
+
     res.json({
       ok: true,
 
       service:
         "keyfe-keder-radyo-gateway",
 
-      version: "5.0.0",
+      version:
+        APP_VERSION,
 
-      status: "online",
+      status:
+        "online",
 
-      port: PORT,
+      port:
+        PORT,
 
-      host: HOST,
+      host:
+        HOST,
 
       environment:
         process.env.NODE_ENV ||
         "development",
 
-      database: true,
+      database:
+        true,
 
       updater:
-        fs.existsSync(
+        fileExists(
           UPDATER
         ),
 
+      autoUpdater:
+        fileExists(
+          AUTO_UPDATER
+        ),
+
       rootStations:
-        fs.existsSync(
+        fileExists(
           ROOT_STATIONS
         ),
 
       publicStations:
-        fs.existsSync(
+        fileExists(
           PUBLIC_STATIONS
         ),
 
@@ -440,10 +532,21 @@ app.get(
           PUBLIC_STATIONS
         ),
 
-      ffmpeg:
-        Boolean(
-          process.env.FFMPEG_PATH
-        ),
+      ffmpeg,
+
+      paths: {
+        root:
+          ROOT,
+
+        stations:
+          ROOT_STATIONS,
+
+        publicStations:
+          PUBLIC_STATIONS,
+
+        updater:
+          UPDATER,
+      },
 
       time:
         new Date().toISOString(),
@@ -460,7 +563,7 @@ app.get(
   (_req, res) => {
     try {
       if (
-        !fs.existsSync(
+        !fileExists(
           PUBLIC_STATIONS
         )
       ) {
@@ -492,6 +595,7 @@ app.get(
       }
 
       res.json({
+        ok: true,
         success: true,
         total:
           stations.length,
@@ -578,7 +682,7 @@ app.get(
 
         {
           "User-Agent":
-            "Keyfe-Keder-Radyo/5.0",
+            "Keyfe-Keder-Radyo/5.1",
 
           Accept:
             "*/*",
@@ -675,19 +779,24 @@ app.get(
     let responseStarted =
       false;
 
-    const request =
+    let request = null;
+
+    request =
       requestFollowingRedirects(
         target,
 
         {
           "User-Agent":
-            "Keyfe-Keder-Radyo/5.0",
+            "Keyfe-Keder-Radyo/5.1",
 
           Accept:
             "*/*",
 
           "Icy-MetaData":
             "1",
+
+          Connection:
+            "keep-alive",
         },
 
         (upstream) => {
@@ -716,8 +825,23 @@ app.get(
           );
 
           res.setHeader(
+            "Access-Control-Expose-Headers",
+            "icy-metaint,content-type"
+          );
+
+          res.setHeader(
             "Cache-Control",
-            "no-cache,no-store"
+            "no-cache, no-store, must-revalidate"
+          );
+
+          res.setHeader(
+            "Pragma",
+            "no-cache"
+          );
+
+          res.setHeader(
+            "Connection",
+            "keep-alive"
           );
 
           if (
@@ -791,7 +915,7 @@ app.get(
       "close",
       () => {
         try {
-          request.destroy();
+          request?.destroy();
         } catch {}
       }
     );
@@ -804,7 +928,7 @@ app.get(
 
 app.get(
   "/api/transcode",
-  (req, res) => {
+  async (req, res) => {
     const target =
       parseUrl(
         req.query.url
@@ -822,6 +946,23 @@ app.get(
       process.env.FFMPEG_PATH ||
       "ffmpeg";
 
+    const available =
+      await isExecutableAvailable(
+        ffmpeg
+      );
+
+    if (!available) {
+      log(
+        "[FFMPEG] FFmpeg bulunamadı."
+      );
+
+      return res
+        .status(503)
+        .send(
+          "FFmpeg sunucuda mevcut değil."
+        );
+    }
+
     res.setHeader(
       "Content-Type",
       "audio/mpeg"
@@ -837,6 +978,11 @@ app.get(
       "*"
     );
 
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "*"
+    );
+
     const args = [
       "-hide_banner",
       "-loglevel",
@@ -846,6 +992,9 @@ app.get(
       "1",
 
       "-reconnect_streamed",
+      "1",
+
+      "-reconnect_at_eof",
       "1",
 
       "-reconnect_delay_max",
@@ -898,17 +1047,11 @@ app.get(
         error.message
       );
 
-      if (
-        !res.headersSent
-      ) {
-        res
-          .status(500)
-          .send(
-            "FFmpeg başlatılamadı."
-          );
-      }
-
-      return;
+      return res
+        .status(500)
+        .send(
+          "FFmpeg başlatılamadı."
+        );
     }
 
     let stderr = "";
@@ -1049,277 +1192,44 @@ app.get(
         8000
       );
 
-    request =
-      transport.get(
-        target.href,
-        {
-          headers: {
-            "User-Agent":
-              "Keyfe-Keder-Radyo/5.0",
+    try {
+      request =
+        transport.get(
+          target.href,
+          {
+            headers: {
+              "User-Agent":
+                "Keyfe-Keder-Radyo/5.1",
 
-            Accept:
-              "*/*",
+              Accept:
+                "*/*",
 
-            "Icy-MetaData":
-              "1",
+              "Icy-MetaData":
+                "1",
+            },
+
+            timeout: 10000,
           },
 
-          timeout: 10000,
-        },
+          (stream) => {
+            const metaInt =
+              Number(
+                stream.headers[
+                  "icy-metaint"
+                ]
+              );
 
-        (stream) => {
-          const metaInt =
-            Number(
-              stream.headers[
-                "icy-metaint"
-              ]
-            );
-
-          if (
-            !Number.isFinite(
-              metaInt
-            ) ||
-            metaInt <= 0
-          ) {
-            clearTimeout(
-              timeout
-            );
-
-            stream.destroy();
-
-            finish({
-              success: false,
-              artist: "",
-              title: "",
-              raw: "",
-            });
-
-            return;
-          }
-
-          let audioRemaining =
-            metaInt;
-
-          let metadataRemaining =
-            0;
-
-          let readingMetadata =
-            false;
-
-          let buffer =
-            Buffer.alloc(0);
-
-          stream.on(
-            "data",
-            (chunk) => {
-              let offset = 0;
-
-              while (
-                offset <
-                  chunk.length &&
-                !finished
-              ) {
-                if (
-                  !readingMetadata
-                ) {
-                  const available =
-                    chunk.length -
-                    offset;
-
-                  const take =
-                    Math.min(
-                      available,
-                      audioRemaining
-                    );
-
-                  offset +=
-                    take;
-
-                  audioRemaining -=
-                    take;
-
-                  if (
-                    audioRemaining >
-                    0
-                  ) {
-                    continue;
-                  }
-
-                  if (
-                    offset >=
-                    chunk.length
-                  ) {
-                    continue;
-                  }
-
-                  const length =
-                    chunk[
-                      offset
-                    ] *
-                    16;
-
-                  offset++;
-
-                  metadataRemaining =
-                    length;
-
-                  buffer =
-                    Buffer.alloc(
-                      0
-                    );
-
-                  readingMetadata =
-                    metadataRemaining >
-                    0;
-
-                  if (
-                    !readingMetadata
-                  ) {
-                    audioRemaining =
-                      metaInt;
-                  }
-                }
-
-                if (
-                  readingMetadata
-                ) {
-                  const available =
-                    chunk.length -
-                    offset;
-
-                  const take =
-                    Math.min(
-                      available,
-                      metadataRemaining
-                    );
-
-                  if (
-                    take > 0
-                  ) {
-                    buffer =
-                      Buffer.concat([
-                        buffer,
-                        chunk.subarray(
-                          offset,
-                          offset +
-                            take
-                        ),
-                      ]);
-                  }
-
-                  offset +=
-                    take;
-
-                  metadataRemaining -=
-                    take;
-
-                  if (
-                    metadataRemaining <=
-                    0
-                  ) {
-                    const metadata =
-                      buffer
-                        .toString(
-                          "utf8"
-                        )
-                        .replace(
-                          /[\0\r\n]/g,
-                          " "
-                        )
-                        .trim();
-
-                    const match =
-                      metadata.match(
-                        /StreamTitle='([^']*)'/i
-                      );
-
-                    if (
-                      match?.[1]
-                    ) {
-                      const raw =
-                        match[1].trim();
-
-                      const separators =
-                        [
-                          " - ",
-                          " – ",
-                          " — ",
-                          " | ",
-                          " / ",
-                        ];
-
-                      let artist =
-                        "";
-
-                      let title =
-                        raw;
-
-                      for (
-                        const separator of
-                        separators
-                      ) {
-                        if (
-                          raw.includes(
-                            separator
-                          )
-                        ) {
-                          const parts =
-                            raw.split(
-                              separator
-                            );
-
-                          artist =
-                            parts
-                              .shift()
-                              ?.trim() ||
-                            "";
-
-                          title =
-                            parts
-                              .join(
-                                separator
-                              )
-                              .trim();
-
-                          break;
-                        }
-                      }
-
-                      clearTimeout(
-                        timeout
-                      );
-
-                      finish({
-                        success:
-                          true,
-
-                        raw,
-
-                        artist,
-
-                        title,
-                      });
-
-                      return;
-                    }
-
-                    readingMetadata =
-                      false;
-
-                    audioRemaining =
-                      metaInt;
-                  }
-                }
-              }
-            }
-          );
-
-          stream.on(
-            "error",
-            () => {
+            if (
+              !Number.isFinite(
+                metaInt
+              ) ||
+              metaInt <= 0
+            ) {
               clearTimeout(
                 timeout
               );
+
+              stream.destroy();
 
               finish({
                 success: false,
@@ -1327,26 +1237,311 @@ app.get(
                 title: "",
                 raw: "",
               });
+
+              return;
             }
+
+            let audioRemaining =
+              metaInt;
+
+            let metadataRemaining =
+              0;
+
+            let readingMetadata =
+              false;
+
+            let buffer =
+              Buffer.alloc(0);
+
+            stream.on(
+              "data",
+              (chunk) => {
+                let offset = 0;
+
+                while (
+                  offset <
+                    chunk.length &&
+                  !finished
+                ) {
+                  if (
+                    !readingMetadata
+                  ) {
+                    const available =
+                      chunk.length -
+                      offset;
+
+                    const take =
+                      Math.min(
+                        available,
+                        audioRemaining
+                      );
+
+                    offset +=
+                      take;
+
+                    audioRemaining -=
+                      take;
+
+                    if (
+                      audioRemaining >
+                      0
+                    ) {
+                      continue;
+                    }
+
+                    if (
+                      offset >=
+                      chunk.length
+                    ) {
+                      continue;
+                    }
+
+                    const length =
+                      chunk[
+                        offset
+                      ] *
+                      16;
+
+                    offset++;
+
+                    metadataRemaining =
+                      length;
+
+                    buffer =
+                      Buffer.alloc(
+                        0
+                      );
+
+                    readingMetadata =
+                      metadataRemaining >
+                      0;
+
+                    if (
+                      !readingMetadata
+                    ) {
+                      audioRemaining =
+                        metaInt;
+                    }
+                  }
+
+                  if (
+                    readingMetadata
+                  ) {
+                    const available =
+                      chunk.length -
+                      offset;
+
+                    const take =
+                      Math.min(
+                        available,
+                        metadataRemaining
+                      );
+
+                    if (
+                      take > 0
+                    ) {
+                      buffer =
+                        Buffer.concat([
+                          buffer,
+                          chunk.subarray(
+                            offset,
+                            offset +
+                              take
+                          ),
+                        ]);
+                    }
+
+                    offset +=
+                      take;
+
+                    metadataRemaining -=
+                      take;
+
+                    if (
+                      metadataRemaining <=
+                      0
+                    ) {
+                      const metadata =
+                        buffer
+                          .toString(
+                            "utf8"
+                          )
+                          .replace(
+                            /[\0\r\n]/g,
+                            " "
+                          )
+                          .trim();
+
+                      const match =
+                        metadata.match(
+                          /StreamTitle='([^']*)'/i
+                        );
+
+                      if (
+                        match?.[1]
+                      ) {
+                        const raw =
+                          match[1].trim();
+
+                        const separators =
+                          [
+                            " - ",
+                            " – ",
+                            " — ",
+                            " | ",
+                            " / ",
+                            " · ",
+                          ];
+
+                        let artist =
+                          "";
+
+                        let title =
+                          raw;
+
+                        for (
+                          const separator of
+                          separators
+                        ) {
+                          if (
+                            raw.includes(
+                              separator
+                            )
+                          ) {
+                            const parts =
+                              raw.split(
+                                separator
+                              );
+
+                            artist =
+                              parts
+                                .shift()
+                                ?.trim() ||
+                              "";
+
+                            title =
+                              parts
+                                .join(
+                                  separator
+                                )
+                                .trim();
+
+                            break;
+                          }
+                        }
+
+                        clearTimeout(
+                          timeout
+                        );
+
+                        finish({
+                          success:
+                            true,
+
+                          raw,
+
+                          artist,
+
+                          title,
+                        });
+
+                        return;
+                      }
+
+                      readingMetadata =
+                        false;
+
+                      audioRemaining =
+                        metaInt;
+                    }
+                  }
+                }
+              }
+            );
+
+            stream.on(
+              "error",
+              () => {
+                clearTimeout(
+                  timeout
+                );
+
+                finish({
+                  success: false,
+                  artist: "",
+                  title: "",
+                  raw: "",
+                });
+              }
+            );
+
+            stream.on(
+              "end",
+              () => {
+                clearTimeout(
+                  timeout
+                );
+
+                if (!finished) {
+                  finish({
+                    success: false,
+                    artist: "",
+                    title: "",
+                    raw: "",
+                  });
+                }
+              }
+            );
+          }
+        );
+
+      request.on(
+        "error",
+        () => {
+          clearTimeout(
+            timeout
           );
+
+          finish({
+            success: false,
+            artist: "",
+            title: "",
+            raw: "",
+          });
         }
       );
 
-    request.on(
-      "error",
-      () => {
-        clearTimeout(
-          timeout
-        );
+      request.on(
+        "timeout",
+        () => {
+          try {
+            request.destroy();
+          } catch {}
 
-        finish({
-          success: false,
-          artist: "",
-          title: "",
-          raw: "",
-        });
-      }
-    );
+          clearTimeout(
+            timeout
+          );
+
+          finish({
+            success: false,
+            artist: "",
+            title: "",
+            raw: "",
+          });
+        }
+      );
+    } catch {
+      clearTimeout(
+        timeout
+      );
+
+      finish({
+        success: false,
+        artist: "",
+        title: "",
+        raw: "",
+      });
+    }
   }
 );
 
@@ -1393,7 +1588,7 @@ app.get(
           {
             headers: {
               "User-Agent":
-                "Keyfe-Keder-Radyo/5.0",
+                "Keyfe-Keder-Radyo/5.1",
             },
           }
         );
@@ -2238,7 +2433,7 @@ app.get(
 
 function copyStationsToPublic() {
   if (
-    !fs.existsSync(
+    !fileExists(
       ROOT_STATIONS
     )
   ) {
@@ -2288,12 +2483,60 @@ function copyStationsToPublic() {
     "utf8"
   );
 
-  fs.renameSync(
-    temp,
-    PUBLIC_STATIONS
-  );
+  try {
+    fs.renameSync(
+      temp,
+      PUBLIC_STATIONS
+    );
+  } catch {
+    try {
+      fs.copyFileSync(
+        temp,
+        PUBLIC_STATIONS
+      );
+
+      fs.unlinkSync(
+        temp
+      );
+    } catch {
+      throw new Error(
+        "Public stations.json yazılamadı."
+      );
+    }
+  }
 
   return parsed.length;
+}
+
+/* =========================================================
+   PYTHON EXECUTABLE
+========================================================= */
+
+function getPythonCommand() {
+  if (
+    process.env.PYTHON_PATH
+  ) {
+    return {
+      command:
+        process.env.PYTHON_PATH,
+      args: [],
+    };
+  }
+
+  if (
+    process.platform ===
+    "win32"
+  ) {
+    return {
+      command: "py",
+      args: [],
+    };
+  }
+
+  return {
+    command: "python3",
+    args: [],
+  };
 }
 
 /* =========================================================
@@ -2304,7 +2547,7 @@ function runUpdater() {
   return new Promise(
     (resolve) => {
       if (
-        !fs.existsSync(
+        !fileExists(
           UPDATER
         )
       ) {
@@ -2321,32 +2564,56 @@ function runUpdater() {
         "[UPDATER] Başlıyor..."
       );
 
-      const command =
-        process.platform ===
-        "win32"
-          ? "py"
-          : "python3";
+      const python =
+        getPythonCommand();
 
-      const child =
-        spawn(
-          command,
-          [UPDATER],
-          {
-            cwd: ROOT,
+      let child;
 
-            windowsHide:
-              true,
-
-            stdio: [
-              "ignore",
-              "pipe",
-              "pipe",
+      try {
+        child =
+          spawn(
+            python.command,
+            [
+              ...python.args,
+              UPDATER,
             ],
-          }
-        );
+            {
+              cwd: ROOT,
+
+              windowsHide:
+                true,
+
+              stdio: [
+                "ignore",
+                "pipe",
+                "pipe",
+              ],
+            }
+          );
+      } catch (error) {
+        resolve({
+          success: false,
+          message:
+            error.message,
+        });
+
+        return;
+      }
 
       let stdout = "";
       let stderr = "";
+      let settled = false;
+
+      const finish = (
+        result
+      ) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        resolve(result);
+      };
 
       child.stdout.on(
         "data",
@@ -2381,7 +2648,7 @@ function runUpdater() {
       child.on(
         "error",
         (error) => {
-          resolve({
+          finish({
             success: false,
             message:
               error.message,
@@ -2397,7 +2664,7 @@ function runUpdater() {
           if (
             code !== 0
           ) {
-            resolve({
+            finish({
               success: false,
               message:
                 stderr ||
@@ -2413,7 +2680,7 @@ function runUpdater() {
             const total =
               copyStationsToPublic();
 
-            resolve({
+            finish({
               success: true,
               total,
               stdout,
@@ -2422,7 +2689,7 @@ function runUpdater() {
                 "Radyo listesi güncellendi.",
             });
           } catch (error) {
-            resolve({
+            finish({
               success: false,
               message:
                 error.message,
@@ -2468,6 +2735,8 @@ app.post(
         );
 
       res.json({
+        ok: true,
+
         success: true,
 
         updated: true,
@@ -2495,6 +2764,7 @@ app.post(
       res
         .status(500)
         .json({
+          ok: false,
           success: false,
           message:
             error.message,
@@ -2565,25 +2835,44 @@ async function startServer() {
     await initDb();
 
     /*
-     * Eğer public stations yoksa
-     * root stations'tan otomatik oluştur.
+     * Public stations yoksa root stations'tan
+     * otomatik oluştur.
      */
     if (
-      fs.existsSync(
+      fileExists(
         ROOT_STATIONS
       )
     ) {
       try {
-        if (
-          !fs.existsSync(
+        const rootCount =
+          countStations(
+            ROOT_STATIONS
+          );
+
+        const publicCount =
+          countStations(
             PUBLIC_STATIONS
-          )
+          );
+
+        /*
+         * Public dosya yoksa veya boşsa
+         * root ile senkronla.
+         */
+        if (
+          !fileExists(
+            PUBLIC_STATIONS
+          ) ||
+          publicCount === 0
         ) {
           const total =
             copyStationsToPublic();
 
           log(
             `[STATIONS] Public liste oluşturuldu: ${total}`
+          );
+        } else {
+          log(
+            `[STATIONS] Root: ${rootCount} | Public: ${publicCount}`
           );
         }
       } catch (error) {
@@ -2592,6 +2881,10 @@ async function startServer() {
           error.message
         );
       }
+    } else {
+      log(
+        `[STATIONS] Ana stations.json bulunamadı: ${ROOT_STATIONS}`
+      );
     }
 
     server =
@@ -2604,52 +2897,55 @@ async function startServer() {
             "================================================"
           );
           console.log(
-            "        KEYFE KEDER RADYO GATEWAY v5"
+            `        KEYFE KEDER RADYO GATEWAY v${APP_VERSION}`
           );
           console.log(
             "================================================"
           );
           console.log(
-            `Local:      http://127.0.0.1:${PORT}`
+            `Local:          http://127.0.0.1:${PORT}`
           );
           console.log(
-            `Network:    http://0.0.0.0:${PORT}`
+            `Network:        http://0.0.0.0:${PORT}`
           );
           console.log(
-            `Health:     http://127.0.0.1:${PORT}/api/health`
+            `Health:         /api/health`
           );
           console.log(
-            `Stations:   ${ROOT_STATIONS}`
+            `Stations:       ${ROOT_STATIONS}`
           );
           console.log(
-            `Web list:   ${PUBLIC_STATIONS}`
+            `Web list:       ${PUBLIC_STATIONS}`
           );
           console.log(
-            `DB:         ${path.join(ROOT, "users.db.bin")}`
+            `Updater:        ${UPDATER}`
           );
           console.log(
-            `PORT:       ${PORT}`
+            `DB directory:   ${ROOT}`
           );
           console.log(
-            `ENV:        ${
+            `PORT:           ${PORT}`
+          );
+          console.log(
+            `ENV:            ${
               process.env.NODE_ENV ||
               "development"
             }`
           );
           console.log(
-            "Relay:      enabled"
+            "Relay:          enabled"
           );
           console.log(
-            "Transcode:  FFmpeg fallback"
+            "Transcode:      FFmpeg optional"
           );
           console.log(
-            "Metadata:   ICY"
+            "Metadata:       ICY"
           );
           console.log(
-            "Cover:      iTunes lookup"
+            "Cover:          iTunes lookup"
           );
           console.log(
-            "Auth:       enabled"
+            "Auth:           enabled"
           );
           console.log(
             "================================================"
