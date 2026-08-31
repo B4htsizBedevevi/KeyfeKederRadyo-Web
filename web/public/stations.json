@@ -78,7 +78,7 @@
     "country": "Türkiye",
     "quality": "64 kbps",
     "bitrate": 64,
-    "votes": 12054,
+    "votes": 12055,
     "song": "Canlı yayın",
     "codec": "AAC+",
     "homepage": "https://metrofm.com.tr/"
@@ -680,7 +680,7 @@
     "country": "Türkiye",
     "quality": "128 kbps",
     "bitrate": 128,
-    "votes": 990,
+    "votes": 991,
     "song": "Canlı yayın",
     "codec": "MP3",
     "homepage": "http://www.radyoa.anadolu.edu.tr/"
@@ -1688,7 +1688,7 @@
     "country": "The Russian Federation",
     "quality": "LIVE",
     "bitrate": 0,
-    "votes": 58559,
+    "votes": 58560,
     "song": "Canlı yayın",
     "codec": "MP3",
     "homepage": "http://www.rockfm.ru/"
@@ -1730,7 +1730,7 @@
     "country": "The United Kingdom Of Great Britain And Northern Ireland",
     "quality": "101 kbps",
     "bitrate": 101,
-    "votes": 3240,
+    "votes": 3241,
     "song": "Canlı yayın",
     "codec": "AAC+",
     "homepage": "http://www.bbc.co.uk/radio1"

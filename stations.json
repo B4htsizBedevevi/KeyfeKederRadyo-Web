@@ -1,8 +1,8 @@
 [
   {
     "name": "Virgin Radio Türkiye",
-    "url": "http://25703.live.streamtheworld.com/VIRGIN_RADIO_SC",
-    "url_resolved": "http://25703.live.streamtheworld.com/VIRGIN_RADIO_SC",
+    "url": "http://28503.live.streamtheworld.com:3690/VIRGIN_RADIO_SC",
+    "url_resolved": "http://28503.live.streamtheworld.com:3690/VIRGIN_RADIO_SC",
     "genre": "Rock",
     "language": "Turkish",
     "country": "Türkiye",
@@ -78,7 +78,7 @@
     "country": "Türkiye",
     "quality": "64 kbps",
     "bitrate": 64,
-    "votes": 12054,
+    "votes": 12055,
     "song": "Canlı yayın",
     "codec": "AAC+",
     "homepage": "https://metrofm.com.tr/"
@@ -379,8 +379,8 @@
   },
   {
     "name": "Joy Fm",
-    "url": "http://27953.live.streamtheworld.com/JOY_FMAAC_SC",
-    "url_resolved": "http://27953.live.streamtheworld.com/JOY_FMAAC_SC",
+    "url": "http://25503.live.streamtheworld.com:3690/JOY_FMAAC_SC",
+    "url_resolved": "http://25503.live.streamtheworld.com:3690/JOY_FMAAC_SC",
     "genre": "Pop",
     "language": "Turkish",
     "country": "Türkiye",
@@ -722,7 +722,7 @@
     "country": "Türkiye",
     "quality": "128 kbps",
     "bitrate": 128,
-    "votes": 990,
+    "votes": 991,
     "song": "Canlı yayın",
     "codec": "MP3",
     "homepage": "http://www.radyoa.anadolu.edu.tr/"
@@ -1588,8 +1588,8 @@
     "genre": "Rap",
     "language": "Turkish",
     "country": "Türkiye",
-    "quality": "278 kbps",
-    "bitrate": 278,
+    "quality": "277 kbps",
+    "bitrate": 277,
     "votes": 316,
     "song": "Canlı yayın",
     "codec": "AAC",
@@ -1688,7 +1688,7 @@
     "country": "The Russian Federation",
     "quality": "LIVE",
     "bitrate": 0,
-    "votes": 58559,
+    "votes": 58560,
     "song": "Canlı yayın",
     "codec": "MP3",
     "homepage": "http://www.rockfm.ru/"
@@ -1730,7 +1730,7 @@
     "country": "The United Kingdom Of Great Britain And Northern Ireland",
     "quality": "101 kbps",
     "bitrate": 101,
-    "votes": 3240,
+    "votes": 3241,
     "song": "Canlı yayın",
     "codec": "AAC+",
     "homepage": "http://www.bbc.co.uk/radio1"

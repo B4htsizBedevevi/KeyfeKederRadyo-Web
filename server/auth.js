@@ -1,42 +1,48 @@
-﻿/**
- * auth.js â€” JWT + bcrypt yardÄ±mcÄ±larÄ± ve middleware'ler
- */
-
-import jwt        from "jsonwebtoken";
-import bcrypt     from "bcryptjs";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { getUserById } from "./db.js";
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   CONFIG
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-export const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = String(process.env.JWT_SECRET || "");
 
-if (!JWT_SECRET || JWT_SECRET.length < 32) {
+if (JWT_SECRET.length < 32) {
   throw new Error(
-    "JWT_SECRET environment variable must be set and at least 32 characters long."
+    "JWT_SECRET eksik veya çok kısa. En az 32 karakterlik bir JWT_SECRET tanımlayın."
   );
 }
+
+export { JWT_SECRET };
 
 export const JWT_EXPIRES =
   process.env.JWT_EXPIRES || "30d";
 
 const SALT_ROUNDS = 12;
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+/* =========================================================
    PASSWORD
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-export async function hashPassword(plain) {
-  return bcrypt.hash(plain, SALT_ROUNDS);
+========================================================= */
+
+export async function hashPassword(password) {
+  return bcrypt.hash(String(password), SALT_ROUNDS);
 }
 
-export async function verifyPassword(plain, hash) {
-  return bcrypt.compare(plain, hash);
+export async function verifyPassword(password, hash) {
+  return bcrypt.compare(String(password), String(hash));
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* =========================================================
    TOKEN
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+========================================================= */
+
 export function signToken(userId) {
-  return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+  return jwt.sign(
+    {
+      sub: Number(userId)
+    },
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRES
+    }
+  );
 }
 
 export function verifyToken(token) {
@@ -47,81 +53,221 @@ export function verifyToken(token) {
   }
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   MIDDLEWARE â€” zorunlu auth
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* =========================================================
+   AUTH MIDDLEWARE
+========================================================= */
+
 export function requireAuth(req, res, next) {
-  const header = req.headers.authorization || "";
-  const token  = header.startsWith("Bearer ") ? header.slice(7) : null;
+  try {
+    const header =
+      String(req.headers.authorization || "");
 
-  if (!token) {
-    return res.status(401).json({ ok: false, error: "Token gerekli." });
+    if (!header.startsWith("Bearer ")) {
+      return res.status(401).json({
+        ok: false,
+        error: "Token gerekli."
+      });
+    }
+
+    const token =
+      header.slice(7).trim();
+
+    if (!token) {
+      return res.status(401).json({
+        ok: false,
+        error: "Token gerekli."
+      });
+    }
+
+    const payload =
+      verifyToken(token);
+
+    if (!payload || !payload.sub) {
+      return res.status(401).json({
+        ok: false,
+        error: "Token geçersiz veya süresi dolmuş."
+      });
+    }
+
+    const user =
+      getUserById(Number(payload.sub));
+
+    if (!user) {
+      return res.status(401).json({
+        ok: false,
+        error: "Kullanıcı bulunamadı."
+      });
+    }
+
+    req.user = user;
+
+    next();
+  } catch (error) {
+    console.error(
+      "[AUTH]",
+      error
+    );
+
+    return res.status(401).json({
+      ok: false,
+      error: "Kimlik doğrulama başarısız."
+    });
   }
-
-  const payload = verifyToken(token);
-  if (!payload) {
-    return res.status(401).json({ ok: false, error: "Token geÃ§ersiz veya sÃ¼resi dolmuÅŸ." });
-  }
-
-  const user = getUserById(payload.sub);
-  if (!user) {
-    return res.status(401).json({ ok: false, error: "KullanÄ±cÄ± bulunamadÄ±." });
-  }
-
-  req.user = user;
-  next();
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   MIDDLEWARE â€” opsiyonel auth (token varsa decode eder)
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* =========================================================
+   OPTIONAL AUTH
+========================================================= */
+
 export function optionalAuth(req, _res, next) {
-  const header = req.headers.authorization || "";
-  const token  = header.startsWith("Bearer ") ? header.slice(7) : null;
-  if (token) {
-    const payload = verifyToken(token);
-    if (payload) req.user = getUserById(payload.sub);
+  try {
+    const header =
+      String(req.headers.authorization || "");
+
+    if (header.startsWith("Bearer ")) {
+      const token =
+        header.slice(7).trim();
+
+      const payload =
+        verifyToken(token);
+
+      if (payload?.sub) {
+        const user =
+          getUserById(Number(payload.sub));
+
+        if (user) {
+          req.user = user;
+        }
+      }
+    }
+  } catch {
+    // Opsiyonel auth olduğu için hata üretmiyoruz.
   }
+
   next();
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   INPUT VALIDATION
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-export function validateRegister({ username, email, password }) {
+/* =========================================================
+   VALIDATION
+========================================================= */
+
+export function validateRegister({
+  username,
+  email,
+  password
+}) {
   const errors = [];
 
-  if (!username || username.trim().length < 3)
-    errors.push("KullanÄ±cÄ± adÄ± en az 3 karakter olmalÄ±.");
-  if (username && username.trim().length > 30)
-    errors.push("KullanÄ±cÄ± adÄ± en fazla 30 karakter olabilir.");
-  if (username && !/^[a-zA-Z0-9_Ã§ÄŸÄ±Ã¶ÅŸÃ¼Ã‡ÄÄ°Ã–ÅÃœ]+$/.test(username.trim()))
-    errors.push("KullanÄ±cÄ± adÄ± sadece harf, rakam ve _ iÃ§erebilir.");
+  const cleanUsername =
+    typeof username === "string"
+      ? username.trim()
+      : "";
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-    errors.push("GeÃ§erli bir e-posta adresi girin.");
+  const cleanEmail =
+    typeof email === "string"
+      ? email.trim()
+      : "";
 
-  if (!password || password.length < 6)
-    errors.push("Åifre en az 6 karakter olmalÄ±.");
-  if (password && password.length > 128)
-    errors.push("Åifre Ã§ok uzun.");
+  if (
+    !cleanUsername ||
+    cleanUsername.length < 3
+  ) {
+    errors.push(
+      "Kullanıcı adı en az 3 karakter olmalı."
+    );
+  }
+
+  if (
+    cleanUsername.length > 30
+  ) {
+    errors.push(
+      "Kullanıcı adı en fazla 30 karakter olabilir."
+    );
+  }
+
+  if (
+    cleanUsername &&
+    !/^[a-zA-Z0-9_çğıöşüÇĞİÖŞÜ]+$/.test(
+      cleanUsername
+    )
+  ) {
+    errors.push(
+      "Kullanıcı adı sadece harf, rakam ve _ içerebilir."
+    );
+  }
+
+  if (
+    !cleanEmail ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      cleanEmail
+    )
+  ) {
+    errors.push(
+      "Geçerli bir e-posta adresi girin."
+    );
+  }
+
+  if (
+    typeof password !== "string" ||
+    password.length < 6
+  ) {
+    errors.push(
+      "Şifre en az 6 karakter olmalı."
+    );
+  }
+
+  if (
+    typeof password === "string" &&
+    password.length > 128
+  ) {
+    errors.push(
+      "Şifre çok uzun."
+    );
+  }
 
   return errors;
 }
 
-export function validateLogin({ email, password }) {
+export function validateLogin({
+  email,
+  password
+}) {
   const errors = [];
-  if (!email)    errors.push("E-posta gerekli.");
-  if (!password) errors.push("Åifre gerekli.");
+
+  if (
+    typeof email !== "string" ||
+    !email.trim()
+  ) {
+    errors.push(
+      "E-posta gerekli."
+    );
+  }
+
+  if (
+    typeof password !== "string" ||
+    !password
+  ) {
+    errors.push(
+      "Şifre gerekli."
+    );
+  }
+
   return errors;
 }
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   SAFE USER (ÅŸifreyi dÄ±ÅŸarÄ± verme)
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* =========================================================
+   SAFE USER
+========================================================= */
+
 export function safeUser(user) {
-  if (!user) return null;
-  const { password: _pw, ...safe } = user;
+  if (!user) {
+    return null;
+  }
+
+  const {
+    password: _password,
+    ...safe
+  } = user;
+
   return safe;
 }
-
