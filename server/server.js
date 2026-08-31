@@ -1,15 +1,13 @@
-/**
+﻿/**
  * KEYFE KEDER RADYO
  * SERVER / STREAM GATEWAY
- *
- * VERSION 5.1.0
  *
  * Compatible with:
  * - Local Windows development
  * - Linux hosting
  * - PORT environment variable
- * - db.js ES Module
- * - auth.js ES Module
+ * - db.js (ES Module)
+ * - auth.js (ES Module)
  * - stations.json
  * - web/public/stations.json
  * - FFmpeg optional
@@ -51,16 +49,11 @@ import {
   verifyPassword,
   signToken,
   requireAuth,
+  optionalAuth,
   validateRegister,
   validateLogin,
   safeUser,
 } from "./auth.js";
-
-/* =========================================================
-   VERSION
-========================================================= */
-
-const APP_VERSION = "5.1.0";
 
 /* =========================================================
    PATHS
@@ -70,24 +63,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /*
- * server/server.js
- *
- * __dirname:
- *   /home/.../app/server
- *
- * ROOT:
- *   /home/.../app
- *
- * ÖNEMLİ:
- * Eski sürüm "..", ".." ile proje kökünden
- * bir klasör fazla yukarı çıkıyordu.
+ * server.js
+ *    â†“ ..
+ * web
+ *    â†“ ..
+ * KeyfeKederRadyo-Web
  */
 
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(__dirname, "..", "..");
 
-const WEB = path.join(ROOT, "web");
+const WEB = path.join(
+  ROOT,
+  "web"
+);
 
-const PUBLIC = path.join(WEB, "public");
+const PUBLIC = path.join(
+  WEB,
+  "public"
+);
 
 const ROOT_STATIONS = path.join(
   ROOT,
@@ -104,16 +97,23 @@ const UPDATER = path.join(
   "station_updater.py"
 );
 
-const AUTO_UPDATER = path.join(
-  ROOT,
-  "station_auto_update.py"
-);
-
 /* =========================================================
    PORT
 ========================================================= */
 
-const ENV_PORT = Number(process.env.PORT);
+/*
+ * Host PORT'u otomatik verir.
+ *
+ * Ã–rneÄŸin:
+ * PORT=22021
+ *
+ * Lokal bilgisayarda PORT verilmemiÅŸse:
+ * 8787
+ */
+
+const ENV_PORT = Number(
+  process.env.PORT
+);
 
 const PORT =
   Number.isInteger(ENV_PORT) &&
@@ -121,6 +121,10 @@ const PORT =
   ENV_PORT <= 65535
     ? ENV_PORT
     : 8787;
+
+/*
+ * Hosting platformlarÄ± iÃ§in 0.0.0.0 ÅŸart.
+ */
 
 const HOST = "0.0.0.0";
 
@@ -165,7 +169,9 @@ function parseUrl(raw) {
       return null;
     }
 
-    const url = new URL(raw.trim());
+    const url = new URL(
+      raw.trim()
+    );
 
     if (
       url.protocol !== "http:" &&
@@ -187,7 +193,10 @@ function countStations(file) {
     }
 
     const data = JSON.parse(
-      fs.readFileSync(file, "utf8")
+      fs.readFileSync(
+        file,
+        "utf8"
+      )
     );
 
     return Array.isArray(data)
@@ -195,14 +204,6 @@ function countStations(file) {
       : 0;
   } catch {
     return 0;
-  }
-}
-
-function fileExists(file) {
-  try {
-    return fs.existsSync(file);
-  } catch {
-    return false;
   }
 }
 
@@ -215,59 +216,6 @@ function sendError(
     ok: false,
     success: false,
     error: message,
-  });
-}
-
-function isExecutableAvailable(command) {
-  return new Promise((resolve) => {
-    try {
-      const child = spawn(
-        command,
-        ["-version"],
-        {
-          stdio: [
-            "ignore",
-            "ignore",
-            "ignore",
-          ],
-          windowsHide: true,
-        }
-      );
-
-      let settled = false;
-
-      const finish = (value) => {
-        if (settled) {
-          return;
-        }
-
-        settled = true;
-        resolve(value);
-      };
-
-      child.on(
-        "error",
-        () => finish(false)
-      );
-
-      child.on(
-        "close",
-        (code) =>
-          finish(
-            code === 0
-          )
-      );
-
-      setTimeout(() => {
-        try {
-          child.kill();
-        } catch {}
-
-        finish(false);
-      }, 3000).unref();
-    } catch {
-      resolve(false);
-    }
   });
 }
 
@@ -285,19 +233,9 @@ function requestFollowingRedirects(
   let redirectCount = 0;
   let currentRequest = null;
   let destroyed = false;
-  let completed = false;
-
-  function fail(error) {
-    if (completed || destroyed) {
-      return;
-    }
-
-    completed = true;
-    onError(error);
-  }
 
   function makeRequest(urlObj) {
-    if (destroyed || completed) {
+    if (destroyed) {
       return;
     }
 
@@ -306,10 +244,8 @@ function requestFollowingRedirects(
         ? https
         : http;
 
-    let request;
-
-    try {
-      request = transport.get(
+    currentRequest =
+      transport.get(
         urlObj.href,
         {
           headers,
@@ -338,9 +274,9 @@ function requestFollowingRedirects(
               redirectCount >=
               maxRedirects
             ) {
-              fail(
+              onError(
                 new Error(
-                  "Çok fazla yönlendirme."
+                  "Ã‡ok fazla yÃ¶nlendirme."
                 )
               );
 
@@ -352,14 +288,15 @@ function requestFollowingRedirects(
             let nextUrl;
 
             try {
-              nextUrl = new URL(
-                location,
-                urlObj
-              );
+              nextUrl =
+                new URL(
+                  location,
+                  urlObj
+                );
             } catch {
-              fail(
+              onError(
                 new Error(
-                  "Geçersiz yönlendirme adresi."
+                  "GeÃ§ersiz yÃ¶nlendirme adresi."
                 )
               );
 
@@ -372,21 +309,21 @@ function requestFollowingRedirects(
               nextUrl.protocol !==
                 "https:"
             ) {
-              fail(
+              onError(
                 new Error(
-                  "Desteklenmeyen yönlendirme protokolü."
+                  "Desteklenmeyen yÃ¶nlendirme protokolÃ¼."
                 )
               );
 
               return;
             }
 
-            makeRequest(nextUrl);
+            makeRequest(
+              nextUrl
+            );
 
             return;
           }
-
-          completed = true;
 
           onResponse(
             upstream,
@@ -395,37 +332,28 @@ function requestFollowingRedirects(
         }
       );
 
-      currentRequest = request;
+    currentRequest.on(
+      "error",
+      onError
+    );
 
-      request.on(
-        "error",
-        fail
-      );
-
-      request.on(
-        "timeout",
-        () => {
-          try {
-            request.destroy(
-              new Error(
-                "Upstream timeout."
-              )
-            );
-          } catch {}
-
-          fail(
+    currentRequest.on(
+      "timeout",
+      () => {
+        try {
+          currentRequest.destroy(
             new Error(
               "Upstream timeout."
             )
           );
-        }
-      );
-    } catch (error) {
-      fail(error);
-    }
+        } catch {}
+      }
+    );
   }
 
-  makeRequest(targetUrl);
+  makeRequest(
+    targetUrl
+  );
 
   return {
     destroy() {
@@ -449,14 +377,13 @@ app.get(
       ok: true,
       service:
         "keyfe-keder-radyo-gateway",
-      version: APP_VERSION,
+      version: "5.0.0",
       port: PORT,
-      host: HOST,
       environment:
         process.env.NODE_ENV ||
         "development",
       message:
-        "Keyfe Keder Radyo Gateway çalışıyor.",
+        "Keyfe Keder Radyo Gateway Ã§alÄ±ÅŸÄ±yor.",
     });
   }
 );
@@ -467,58 +394,39 @@ app.get(
 
 app.get(
   "/api/health",
-  async (_req, res) => {
-    const ffmpegCommand =
-      process.env.FFMPEG_PATH ||
-      "ffmpeg";
-
-    const ffmpeg =
-      await isExecutableAvailable(
-        ffmpegCommand
-      );
-
+  (_req, res) => {
     res.json({
       ok: true,
 
       service:
         "keyfe-keder-radyo-gateway",
 
-      version:
-        APP_VERSION,
+      version: "5.0.0",
 
-      status:
-        "online",
+      status: "online",
 
-      port:
-        PORT,
+      port: PORT,
 
-      host:
-        HOST,
+      host: HOST,
 
       environment:
         process.env.NODE_ENV ||
         "development",
 
-      database:
-        true,
+      database: true,
 
       updater:
-        fileExists(
+        fs.existsSync(
           UPDATER
         ),
 
-      autoUpdater:
-        fileExists(
-          AUTO_UPDATER
-        ),
-
       rootStations:
-        fileExists(
+        fs.existsSync(
           ROOT_STATIONS
         ),
 
       publicStations:
-        fileExists(
+        fs.existsSync(
           PUBLIC_STATIONS
         ),
 
@@ -532,21 +440,10 @@ app.get(
           PUBLIC_STATIONS
         ),
 
-      ffmpeg,
-
-      paths: {
-        root:
-          ROOT,
-
-        stations:
-          ROOT_STATIONS,
-
-        publicStations:
-          PUBLIC_STATIONS,
-
-        updater:
-          UPDATER,
-      },
+      ffmpeg:
+        Boolean(
+          process.env.FFMPEG_PATH
+        ),
 
       time:
         new Date().toISOString(),
@@ -563,14 +460,14 @@ app.get(
   (_req, res) => {
     try {
       if (
-        !fileExists(
+        !fs.existsSync(
           PUBLIC_STATIONS
         )
       ) {
         return sendError(
           res,
           404,
-          "stations.json bulunamadı."
+          "stations.json bulunamadÄ±."
         );
       }
 
@@ -590,12 +487,11 @@ app.get(
         return sendError(
           res,
           500,
-          "stations.json geçersiz."
+          "stations.json geÃ§ersiz."
         );
       }
 
       res.json({
-        ok: true,
         success: true,
         total:
           stations.length,
@@ -610,7 +506,7 @@ app.get(
       sendError(
         res,
         500,
-        "İstasyon listesi okunamadı."
+        "Ä°stasyon listesi okunamadÄ±."
       );
     }
   }
@@ -632,7 +528,7 @@ app.get(
       return sendError(
         res,
         400,
-        "Geçerli URL gerekli."
+        "GeÃ§erli URL gerekli."
       );
     }
 
@@ -670,7 +566,7 @@ app.get(
               Date.now() -
               start,
             message:
-              "Yayın zaman aşımına uğradı.",
+              "YayÄ±n zaman aÅŸÄ±mÄ±na uÄŸradÄ±.",
           });
         },
         7000
@@ -682,7 +578,7 @@ app.get(
 
         {
           "User-Agent":
-            "Keyfe-Keder-Radyo/5.1",
+            "Keyfe-Keder-Radyo/5.0",
 
           Accept:
             "*/*",
@@ -779,24 +675,19 @@ app.get(
     let responseStarted =
       false;
 
-    let request = null;
-
-    request =
+    const request =
       requestFollowingRedirects(
         target,
 
         {
           "User-Agent":
-            "Keyfe-Keder-Radyo/5.1",
+            "Keyfe-Keder-Radyo/5.0",
 
           Accept:
             "*/*",
 
           "Icy-MetaData":
             "1",
-
-          Connection:
-            "keep-alive",
         },
 
         (upstream) => {
@@ -825,23 +716,8 @@ app.get(
           );
 
           res.setHeader(
-            "Access-Control-Expose-Headers",
-            "icy-metaint,content-type"
-          );
-
-          res.setHeader(
             "Cache-Control",
-            "no-cache, no-store, must-revalidate"
-          );
-
-          res.setHeader(
-            "Pragma",
-            "no-cache"
-          );
-
-          res.setHeader(
-            "Connection",
-            "keep-alive"
+            "no-cache,no-store"
           );
 
           if (
@@ -912,14 +788,27 @@ app.get(
       );
 
     req.on(
-      "close",
+      "aborted",
       () => {
         try {
           request?.destroy();
         } catch {}
       }
     );
-  }
+
+    res.on(
+      "close",
+      () => {
+        if (res.writableEnded) {
+          return;
+        }
+
+        try {
+          request?.destroy();
+        } catch {}
+      }
+    );
+}
 );
 
 /* =========================================================
@@ -928,7 +817,7 @@ app.get(
 
 app.get(
   "/api/transcode",
-  async (req, res) => {
+  (req, res) => {
     const target =
       parseUrl(
         req.query.url
@@ -946,23 +835,6 @@ app.get(
       process.env.FFMPEG_PATH ||
       "ffmpeg";
 
-    const available =
-      await isExecutableAvailable(
-        ffmpeg
-      );
-
-    if (!available) {
-      log(
-        "[FFMPEG] FFmpeg bulunamadı."
-      );
-
-      return res
-        .status(503)
-        .send(
-          "FFmpeg sunucuda mevcut değil."
-        );
-    }
-
     res.setHeader(
       "Content-Type",
       "audio/mpeg"
@@ -978,11 +850,6 @@ app.get(
       "*"
     );
 
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "*"
-    );
-
     const args = [
       "-hide_banner",
       "-loglevel",
@@ -992,9 +859,6 @@ app.get(
       "1",
 
       "-reconnect_streamed",
-      "1",
-
-      "-reconnect_at_eof",
       "1",
 
       "-reconnect_delay_max",
@@ -1047,11 +911,17 @@ app.get(
         error.message
       );
 
-      return res
-        .status(500)
-        .send(
-          "FFmpeg başlatılamadı."
-        );
+      if (
+        !res.headersSent
+      ) {
+        res
+          .status(500)
+          .send(
+            "FFmpeg baÅŸlatÄ±lamadÄ±."
+          );
+      }
+
+      return;
     }
 
     let stderr = "";
@@ -1092,7 +962,7 @@ app.get(
           res
             .status(500)
             .send(
-              "FFmpeg çalıştırılamadı."
+              "FFmpeg Ã§alÄ±ÅŸtÄ±rÄ±lamadÄ±."
             );
         }
       }
@@ -1192,44 +1062,277 @@ app.get(
         8000
       );
 
-    try {
-      request =
-        transport.get(
-          target.href,
-          {
-            headers: {
-              "User-Agent":
-                "Keyfe-Keder-Radyo/5.1",
+    request =
+      transport.get(
+        target.href,
+        {
+          headers: {
+            "User-Agent":
+              "Keyfe-Keder-Radyo/5.0",
 
-              Accept:
-                "*/*",
+            Accept:
+              "*/*",
 
-              "Icy-MetaData":
-                "1",
-            },
-
-            timeout: 10000,
+            "Icy-MetaData":
+              "1",
           },
 
-          (stream) => {
-            const metaInt =
-              Number(
-                stream.headers[
-                  "icy-metaint"
-                ]
-              );
+          timeout: 10000,
+        },
 
-            if (
-              !Number.isFinite(
-                metaInt
-              ) ||
-              metaInt <= 0
-            ) {
+        (stream) => {
+          const metaInt =
+            Number(
+              stream.headers[
+                "icy-metaint"
+              ]
+            );
+
+          if (
+            !Number.isFinite(
+              metaInt
+            ) ||
+            metaInt <= 0
+          ) {
+            clearTimeout(
+              timeout
+            );
+
+            stream.destroy();
+
+            finish({
+              success: false,
+              artist: "",
+              title: "",
+              raw: "",
+            });
+
+            return;
+          }
+
+          let audioRemaining =
+            metaInt;
+
+          let metadataRemaining =
+            0;
+
+          let readingMetadata =
+            false;
+
+          let buffer =
+            Buffer.alloc(0);
+
+          stream.on(
+            "data",
+            (chunk) => {
+              let offset = 0;
+
+              while (
+                offset <
+                  chunk.length &&
+                !finished
+              ) {
+                if (
+                  !readingMetadata
+                ) {
+                  const available =
+                    chunk.length -
+                    offset;
+
+                  const take =
+                    Math.min(
+                      available,
+                      audioRemaining
+                    );
+
+                  offset +=
+                    take;
+
+                  audioRemaining -=
+                    take;
+
+                  if (
+                    audioRemaining >
+                    0
+                  ) {
+                    continue;
+                  }
+
+                  if (
+                    offset >=
+                    chunk.length
+                  ) {
+                    continue;
+                  }
+
+                  const length =
+                    chunk[
+                      offset
+                    ] *
+                    16;
+
+                  offset++;
+
+                  metadataRemaining =
+                    length;
+
+                  buffer =
+                    Buffer.alloc(
+                      0
+                    );
+
+                  readingMetadata =
+                    metadataRemaining >
+                    0;
+
+                  if (
+                    !readingMetadata
+                  ) {
+                    audioRemaining =
+                      metaInt;
+                  }
+                }
+
+                if (
+                  readingMetadata
+                ) {
+                  const available =
+                    chunk.length -
+                    offset;
+
+                  const take =
+                    Math.min(
+                      available,
+                      metadataRemaining
+                    );
+
+                  if (
+                    take > 0
+                  ) {
+                    buffer =
+                      Buffer.concat([
+                        buffer,
+                        chunk.subarray(
+                          offset,
+                          offset +
+                            take
+                        ),
+                      ]);
+                  }
+
+                  offset +=
+                    take;
+
+                  metadataRemaining -=
+                    take;
+
+                  if (
+                    metadataRemaining <=
+                    0
+                  ) {
+                    const metadata =
+                      buffer
+                        .toString(
+                          "utf8"
+                        )
+                        .replace(
+                          /[\0\r\n]/g,
+                          " "
+                        )
+                        .trim();
+
+                    const match =
+                      metadata.match(
+                        /StreamTitle='([^']*)'/i
+                      );
+
+                    if (
+                      match?.[1]
+                    ) {
+                      const raw =
+                        match[1].trim();
+
+                      const separators =
+                        [
+                          " - ",
+                          " â€“ ",
+                          " â€” ",
+                          " | ",
+                          " / ",
+                        ];
+
+                      let artist =
+                        "";
+
+                      let title =
+                        raw;
+
+                      for (
+                        const separator of
+                        separators
+                      ) {
+                        if (
+                          raw.includes(
+                            separator
+                          )
+                        ) {
+                          const parts =
+                            raw.split(
+                              separator
+                            );
+
+                          artist =
+                            parts
+                              .shift()
+                              ?.trim() ||
+                            "";
+
+                          title =
+                            parts
+                              .join(
+                                separator
+                              )
+                              .trim();
+
+                          break;
+                        }
+                      }
+
+                      clearTimeout(
+                        timeout
+                      );
+
+                      finish({
+                        success:
+                          true,
+
+                        raw,
+
+                        artist,
+
+                        title,
+                      });
+
+                      return;
+                    }
+
+                    readingMetadata =
+                      false;
+
+                    audioRemaining =
+                      metaInt;
+                  }
+                }
+              }
+            }
+          );
+
+          stream.on(
+            "error",
+            () => {
               clearTimeout(
                 timeout
               );
-
-              stream.destroy();
 
               finish({
                 success: false,
@@ -1237,311 +1340,26 @@ app.get(
                 title: "",
                 raw: "",
               });
-
-              return;
             }
+          );
+        }
+      );
 
-            let audioRemaining =
-              metaInt;
-
-            let metadataRemaining =
-              0;
-
-            let readingMetadata =
-              false;
-
-            let buffer =
-              Buffer.alloc(0);
-
-            stream.on(
-              "data",
-              (chunk) => {
-                let offset = 0;
-
-                while (
-                  offset <
-                    chunk.length &&
-                  !finished
-                ) {
-                  if (
-                    !readingMetadata
-                  ) {
-                    const available =
-                      chunk.length -
-                      offset;
-
-                    const take =
-                      Math.min(
-                        available,
-                        audioRemaining
-                      );
-
-                    offset +=
-                      take;
-
-                    audioRemaining -=
-                      take;
-
-                    if (
-                      audioRemaining >
-                      0
-                    ) {
-                      continue;
-                    }
-
-                    if (
-                      offset >=
-                      chunk.length
-                    ) {
-                      continue;
-                    }
-
-                    const length =
-                      chunk[
-                        offset
-                      ] *
-                      16;
-
-                    offset++;
-
-                    metadataRemaining =
-                      length;
-
-                    buffer =
-                      Buffer.alloc(
-                        0
-                      );
-
-                    readingMetadata =
-                      metadataRemaining >
-                      0;
-
-                    if (
-                      !readingMetadata
-                    ) {
-                      audioRemaining =
-                        metaInt;
-                    }
-                  }
-
-                  if (
-                    readingMetadata
-                  ) {
-                    const available =
-                      chunk.length -
-                      offset;
-
-                    const take =
-                      Math.min(
-                        available,
-                        metadataRemaining
-                      );
-
-                    if (
-                      take > 0
-                    ) {
-                      buffer =
-                        Buffer.concat([
-                          buffer,
-                          chunk.subarray(
-                            offset,
-                            offset +
-                              take
-                          ),
-                        ]);
-                    }
-
-                    offset +=
-                      take;
-
-                    metadataRemaining -=
-                      take;
-
-                    if (
-                      metadataRemaining <=
-                      0
-                    ) {
-                      const metadata =
-                        buffer
-                          .toString(
-                            "utf8"
-                          )
-                          .replace(
-                            /[\0\r\n]/g,
-                            " "
-                          )
-                          .trim();
-
-                      const match =
-                        metadata.match(
-                          /StreamTitle='([^']*)'/i
-                        );
-
-                      if (
-                        match?.[1]
-                      ) {
-                        const raw =
-                          match[1].trim();
-
-                        const separators =
-                          [
-                            " - ",
-                            " – ",
-                            " — ",
-                            " | ",
-                            " / ",
-                            " · ",
-                          ];
-
-                        let artist =
-                          "";
-
-                        let title =
-                          raw;
-
-                        for (
-                          const separator of
-                          separators
-                        ) {
-                          if (
-                            raw.includes(
-                              separator
-                            )
-                          ) {
-                            const parts =
-                              raw.split(
-                                separator
-                              );
-
-                            artist =
-                              parts
-                                .shift()
-                                ?.trim() ||
-                              "";
-
-                            title =
-                              parts
-                                .join(
-                                  separator
-                                )
-                                .trim();
-
-                            break;
-                          }
-                        }
-
-                        clearTimeout(
-                          timeout
-                        );
-
-                        finish({
-                          success:
-                            true,
-
-                          raw,
-
-                          artist,
-
-                          title,
-                        });
-
-                        return;
-                      }
-
-                      readingMetadata =
-                        false;
-
-                      audioRemaining =
-                        metaInt;
-                    }
-                  }
-                }
-              }
-            );
-
-            stream.on(
-              "error",
-              () => {
-                clearTimeout(
-                  timeout
-                );
-
-                finish({
-                  success: false,
-                  artist: "",
-                  title: "",
-                  raw: "",
-                });
-              }
-            );
-
-            stream.on(
-              "end",
-              () => {
-                clearTimeout(
-                  timeout
-                );
-
-                if (!finished) {
-                  finish({
-                    success: false,
-                    artist: "",
-                    title: "",
-                    raw: "",
-                  });
-                }
-              }
-            );
-          }
+    request.on(
+      "error",
+      () => {
+        clearTimeout(
+          timeout
         );
 
-      request.on(
-        "error",
-        () => {
-          clearTimeout(
-            timeout
-          );
-
-          finish({
-            success: false,
-            artist: "",
-            title: "",
-            raw: "",
-          });
-        }
-      );
-
-      request.on(
-        "timeout",
-        () => {
-          try {
-            request.destroy();
-          } catch {}
-
-          clearTimeout(
-            timeout
-          );
-
-          finish({
-            success: false,
-            artist: "",
-            title: "",
-            raw: "",
-          });
-        }
-      );
-    } catch {
-      clearTimeout(
-        timeout
-      );
-
-      finish({
-        success: false,
-        artist: "",
-        title: "",
-        raw: "",
-      });
-    }
+        finish({
+          success: false,
+          artist: "",
+          title: "",
+          raw: "",
+        });
+      }
+    );
   }
 );
 
@@ -1588,7 +1406,7 @@ app.get(
           {
             headers: {
               "User-Agent":
-                "Keyfe-Keder-Radyo/5.1",
+                "Keyfe-Keder-Radyo/5.0",
             },
           }
         );
@@ -1701,7 +1519,7 @@ app.post(
             ok: false,
             success: false,
             error:
-              "Bu e-posta zaten kayıtlı.",
+              "Bu e-posta zaten kayÄ±tlÄ±.",
           });
       }
 
@@ -1716,7 +1534,7 @@ app.post(
             ok: false,
             success: false,
             error:
-              "Bu kullanıcı adı zaten kullanılıyor.",
+              "Bu kullanÄ±cÄ± adÄ± zaten kullanÄ±lÄ±yor.",
           });
       }
 
@@ -1738,7 +1556,7 @@ app.post(
         return sendError(
           res,
           500,
-          "Kullanıcı oluşturulamadı."
+          "KullanÄ±cÄ± oluÅŸturulamadÄ±."
         );
       }
 
@@ -1763,7 +1581,7 @@ app.post(
       sendError(
         res,
         500,
-        "Kayıt sırasında hata oluştu."
+        "KayÄ±t sÄ±rasÄ±nda hata oluÅŸtu."
       );
     }
   }
@@ -1821,7 +1639,7 @@ app.post(
             ok: false,
             success: false,
             error:
-              "E-posta veya şifre hatalı.",
+              "E-posta veya ÅŸifre hatalÄ±.",
           });
       }
 
@@ -1838,7 +1656,7 @@ app.post(
             ok: false,
             success: false,
             error:
-              "E-posta veya şifre hatalı.",
+              "E-posta veya ÅŸifre hatalÄ±.",
           });
       }
 
@@ -1874,7 +1692,7 @@ app.post(
       sendError(
         res,
         500,
-        "Giriş sırasında hata oluştu."
+        "GiriÅŸ sÄ±rasÄ±nda hata oluÅŸtu."
       );
     }
   }
@@ -1941,7 +1759,7 @@ app.put(
       sendError(
         res,
         500,
-        "Profil güncellenemedi."
+        "Profil gÃ¼ncellenemedi."
       );
     }
   }
@@ -1977,7 +1795,7 @@ app.put(
         return sendError(
           res,
           400,
-          "Mevcut ve yeni şifre gerekli."
+          "Mevcut ve yeni ÅŸifre gerekli."
         );
       }
 
@@ -1988,7 +1806,7 @@ app.put(
         return sendError(
           res,
           400,
-          "Yeni şifre en az 6 karakter olmalı."
+          "Yeni ÅŸifre en az 6 karakter olmalÄ±."
         );
       }
 
@@ -2002,7 +1820,7 @@ app.put(
         return sendError(
           res,
           401,
-          "Mevcut şifre hatalı."
+          "Mevcut ÅŸifre hatalÄ±."
         );
       }
 
@@ -2020,7 +1838,7 @@ app.put(
         ok: true,
         success: true,
         message:
-          "Şifre güncellendi.",
+          "Åifre gÃ¼ncellendi.",
       });
     } catch (error) {
       log(
@@ -2031,7 +1849,7 @@ app.put(
       sendError(
         res,
         500,
-        "Şifre güncellenemedi."
+        "Åifre gÃ¼ncellenemedi."
       );
     }
   }
@@ -2063,7 +1881,7 @@ app.get(
       sendError(
         res,
         500,
-        "Favoriler alınamadı."
+        "Favoriler alÄ±namadÄ±."
       );
     }
   }
@@ -2243,7 +2061,7 @@ app.get(
       sendError(
         res,
         500,
-        "Ayarlar alınamadı."
+        "Ayarlar alÄ±namadÄ±."
       );
     }
   }
@@ -2266,7 +2084,7 @@ app.put(
         return sendError(
           res,
           400,
-          "Geçerli settings objesi gerekli."
+          "GeÃ§erli settings objesi gerekli."
         );
       }
 
@@ -2343,7 +2161,7 @@ app.get(
       sendError(
         res,
         500,
-        "Geçmiş alınamadı."
+        "GeÃ§miÅŸ alÄ±namadÄ±."
       );
     }
   }
@@ -2389,7 +2207,7 @@ app.post(
       sendError(
         res,
         500,
-        "Geçmiş kaydedilemedi."
+        "GeÃ§miÅŸ kaydedilemedi."
       );
     }
   }
@@ -2421,7 +2239,7 @@ app.get(
       sendError(
         res,
         500,
-        "İstatistikler alınamadı."
+        "Ä°statistikler alÄ±namadÄ±."
       );
     }
   }
@@ -2433,12 +2251,12 @@ app.get(
 
 function copyStationsToPublic() {
   if (
-    !fileExists(
+    !fs.existsSync(
       ROOT_STATIONS
     )
   ) {
     throw new Error(
-      `Ana stations.json bulunamadı: ${ROOT_STATIONS}`
+      `Ana stations.json bulunamadÄ±: ${ROOT_STATIONS}`
     );
   }
 
@@ -2459,7 +2277,7 @@ function copyStationsToPublic() {
     )
   ) {
     throw new Error(
-      "stations.json bir array olmalı."
+      "stations.json bir array olmalÄ±."
     );
   }
 
@@ -2483,60 +2301,12 @@ function copyStationsToPublic() {
     "utf8"
   );
 
-  try {
-    fs.renameSync(
-      temp,
-      PUBLIC_STATIONS
-    );
-  } catch {
-    try {
-      fs.copyFileSync(
-        temp,
-        PUBLIC_STATIONS
-      );
-
-      fs.unlinkSync(
-        temp
-      );
-    } catch {
-      throw new Error(
-        "Public stations.json yazılamadı."
-      );
-    }
-  }
+  fs.renameSync(
+    temp,
+    PUBLIC_STATIONS
+  );
 
   return parsed.length;
-}
-
-/* =========================================================
-   PYTHON EXECUTABLE
-========================================================= */
-
-function getPythonCommand() {
-  if (
-    process.env.PYTHON_PATH
-  ) {
-    return {
-      command:
-        process.env.PYTHON_PATH,
-      args: [],
-    };
-  }
-
-  if (
-    process.platform ===
-    "win32"
-  ) {
-    return {
-      command: "py",
-      args: [],
-    };
-  }
-
-  return {
-    command: "python3",
-    args: [],
-  };
 }
 
 /* =========================================================
@@ -2547,73 +2317,49 @@ function runUpdater() {
   return new Promise(
     (resolve) => {
       if (
-        !fileExists(
+        !fs.existsSync(
           UPDATER
         )
       ) {
         resolve({
           success: false,
           message:
-            `Updater bulunamadı: ${UPDATER}`,
+            `Updater bulunamadÄ±: ${UPDATER}`,
         });
 
         return;
       }
 
       log(
-        "[UPDATER] Başlıyor..."
+        "[UPDATER] BaÅŸlÄ±yor..."
       );
 
-      const python =
-        getPythonCommand();
+      const command =
+        process.platform ===
+        "win32"
+          ? "py"
+          : "python3";
 
-      let child;
+      const child =
+        spawn(
+          command,
+          [UPDATER],
+          {
+            cwd: ROOT,
 
-      try {
-        child =
-          spawn(
-            python.command,
-            [
-              ...python.args,
-              UPDATER,
+            windowsHide:
+              true,
+
+            stdio: [
+              "ignore",
+              "pipe",
+              "pipe",
             ],
-            {
-              cwd: ROOT,
-
-              windowsHide:
-                true,
-
-              stdio: [
-                "ignore",
-                "pipe",
-                "pipe",
-              ],
-            }
-          );
-      } catch (error) {
-        resolve({
-          success: false,
-          message:
-            error.message,
-        });
-
-        return;
-      }
+          }
+        );
 
       let stdout = "";
       let stderr = "";
-      let settled = false;
-
-      const finish = (
-        result
-      ) => {
-        if (settled) {
-          return;
-        }
-
-        settled = true;
-        resolve(result);
-      };
 
       child.stdout.on(
         "data",
@@ -2648,7 +2394,7 @@ function runUpdater() {
       child.on(
         "error",
         (error) => {
-          finish({
+          resolve({
             success: false,
             message:
               error.message,
@@ -2664,11 +2410,11 @@ function runUpdater() {
           if (
             code !== 0
           ) {
-            finish({
+            resolve({
               success: false,
               message:
                 stderr ||
-                `Updater ${code} ile kapandı.`,
+                `Updater ${code} ile kapandÄ±.`,
               stdout,
               stderr,
             });
@@ -2680,16 +2426,16 @@ function runUpdater() {
             const total =
               copyStationsToPublic();
 
-            finish({
+            resolve({
               success: true,
               total,
               stdout,
               stderr,
               message:
-                "Radyo listesi güncellendi.",
+                "Radyo listesi gÃ¼ncellendi.",
             });
           } catch (error) {
-            finish({
+            resolve({
               success: false,
               message:
                 error.message,
@@ -2735,8 +2481,6 @@ app.post(
         );
 
       res.json({
-        ok: true,
-
         success: true,
 
         updated: true,
@@ -2764,7 +2508,6 @@ app.post(
       res
         .status(500)
         .json({
-          ok: false,
           success: false,
           message:
             error.message,
@@ -2783,7 +2526,7 @@ app.use(
       ok: false,
       success: false,
       error:
-        "Endpoint bulunamadı.",
+        "Endpoint bulunamadÄ±.",
       path: req.path,
     });
   }
@@ -2816,7 +2559,7 @@ app.use(
       ok: false,
       success: false,
       error:
-        "Sunucu hatası.",
+        "Sunucu hatasÄ±.",
     });
   }
 );
@@ -2830,49 +2573,30 @@ let server = null;
 async function startServer() {
   try {
     /*
-     * DB önce hazır olsun.
+     * DB Ã¶nce hazÄ±r olsun.
      */
     await initDb();
 
     /*
-     * Public stations yoksa root stations'tan
-     * otomatik oluştur.
+     * EÄŸer public stations yoksa
+     * root stations'tan otomatik oluÅŸtur.
      */
     if (
-      fileExists(
+      fs.existsSync(
         ROOT_STATIONS
       )
     ) {
       try {
-        const rootCount =
-          countStations(
-            ROOT_STATIONS
-          );
-
-        const publicCount =
-          countStations(
-            PUBLIC_STATIONS
-          );
-
-        /*
-         * Public dosya yoksa veya boşsa
-         * root ile senkronla.
-         */
         if (
-          !fileExists(
+          !fs.existsSync(
             PUBLIC_STATIONS
-          ) ||
-          publicCount === 0
+          )
         ) {
           const total =
             copyStationsToPublic();
 
           log(
-            `[STATIONS] Public liste oluşturuldu: ${total}`
-          );
-        } else {
-          log(
-            `[STATIONS] Root: ${rootCount} | Public: ${publicCount}`
+            `[STATIONS] Public liste oluÅŸturuldu: ${total}`
           );
         }
       } catch (error) {
@@ -2881,10 +2605,6 @@ async function startServer() {
           error.message
         );
       }
-    } else {
-      log(
-        `[STATIONS] Ana stations.json bulunamadı: ${ROOT_STATIONS}`
-      );
     }
 
     server =
@@ -2897,55 +2617,52 @@ async function startServer() {
             "================================================"
           );
           console.log(
-            `        KEYFE KEDER RADYO GATEWAY v${APP_VERSION}`
+            "        KEYFE KEDER RADYO GATEWAY v5"
           );
           console.log(
             "================================================"
           );
           console.log(
-            `Local:          http://127.0.0.1:${PORT}`
+            `Local:      http://127.0.0.1:${PORT}`
           );
           console.log(
-            `Network:        http://0.0.0.0:${PORT}`
+            `Network:    http://0.0.0.0:${PORT}`
           );
           console.log(
-            `Health:         /api/health`
+            `Health:     http://127.0.0.1:${PORT}/api/health`
           );
           console.log(
-            `Stations:       ${ROOT_STATIONS}`
+            `Stations:   ${ROOT_STATIONS}`
           );
           console.log(
-            `Web list:       ${PUBLIC_STATIONS}`
+            `Web list:   ${PUBLIC_STATIONS}`
           );
           console.log(
-            `Updater:        ${UPDATER}`
+            `DB:         ${path.join(ROOT, "users.db.bin")}`
           );
           console.log(
-            `DB directory:   ${ROOT}`
+            `PORT:       ${PORT}`
           );
           console.log(
-            `PORT:           ${PORT}`
-          );
-          console.log(
-            `ENV:            ${
+            `ENV:        ${
               process.env.NODE_ENV ||
               "development"
             }`
           );
           console.log(
-            "Relay:          enabled"
+            "Relay:      enabled"
           );
           console.log(
-            "Transcode:      FFmpeg optional"
+            "Transcode:  FFmpeg fallback"
           );
           console.log(
-            "Metadata:       ICY"
+            "Metadata:   ICY"
           );
           console.log(
-            "Cover:          iTunes lookup"
+            "Cover:      iTunes lookup"
           );
           console.log(
-            "Auth:           enabled"
+            "Auth:       enabled"
           );
           console.log(
             "================================================"
@@ -2967,7 +2684,7 @@ async function startServer() {
           "EADDRINUSE"
         ) {
           log(
-            `Port ${PORT} zaten kullanımda.`
+            `Port ${PORT} zaten kullanÄ±mda.`
           );
         }
       }
@@ -2990,7 +2707,7 @@ function shutdown(
   signal
 ) {
   log(
-    `${signal} alındı. Sunucu kapatılıyor...`
+    `${signal} alÄ±ndÄ±. Sunucu kapatÄ±lÄ±yor...`
   );
 
   if (!server) {
@@ -3001,7 +2718,7 @@ function shutdown(
   server.close(
     () => {
       log(
-        "HTTP server kapatıldı."
+        "HTTP server kapatÄ±ldÄ±."
       );
 
       process.exit(0);
@@ -3011,7 +2728,7 @@ function shutdown(
   setTimeout(
     () => {
       log(
-        "Zorunlu kapanış."
+        "Zorunlu kapanÄ±ÅŸ."
       );
 
       process.exit(1);
