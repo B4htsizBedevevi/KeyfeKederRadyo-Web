@@ -1,0 +1,24 @@
+{
+  "name": "Keyfe Keder Radyo",
+  "short_name": "KKR",
+  "description": "Keyfime Kederime göre radyo.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#04080f",
+  "theme_color": "#04080f",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%2304080f'/%3E%3Ccircle cx='96' cy='96' r='68' fill='none' stroke='%235b8cff' stroke-width='8' opacity='.3'/%3E%3Ccircle cx='96' cy='96' r='48' fill='none' stroke='%235b8cff' stroke-width='8' opacity='.55'/%3E%3Ccircle cx='96' cy='96' r='18' fill='%235b8cff'/%3E%3Cpath d='M40 68 Q96 32 152 68' fill='none' stroke='%235b8cff' stroke-width='8' stroke-linecap='round' opacity='.8'/%3E%3Cpath d='M54 84 Q96 56 138 84' fill='none' stroke='%235b8cff' stroke-width='8' stroke-linecap='round' opacity='.8'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%2304080f'/%3E%3Ccircle cx='256' cy='256' r='180' fill='none' stroke='%235b8cff' stroke-width='18' opacity='.3'/%3E%3Ccircle cx='256' cy='256' r='124' fill='none' stroke='%235b8cff' stroke-width='18' opacity='.55'/%3E%3Ccircle cx='256' cy='256' r='46' fill='%235b8cff'/%3E%3Cpath d='M96 176 Q256 80 416 176' fill='none' stroke='%235b8cff' stroke-width='20' stroke-linecap='round' opacity='.8'/%3E%3Cpath d='M136 220 Q256 144 376 220' fill='none' stroke='%235b8cff' stroke-width='20' stroke-linecap='round' opacity='.8'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "keyfe-keder-radyo-gateway",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Keyfe Keder Radyo stream gateway",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  }
+}
