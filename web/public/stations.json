@@ -378,20 +378,6 @@
     "homepage": "http://www.dinamo.fm/"
   },
   {
-    "name": "Diyanet Radyo",
-    "url": "https://eustr73.mediatriple.net/videoonlylive/mtikoimxnztxlive/broadcast_5e3c1171d7d2a.smil/playlist.m3u8",
-    "url_resolved": "https://eustr73.mediatriple.net/videoonlylive/mtikoimxnztxlive/broadcast_5e3c1171d7d2a.smil/playlist.m3u8",
-    "genre": "Pop",
-    "language": "Turkish",
-    "country": "Türkiye",
-    "quality": "140 kbps",
-    "bitrate": 140,
-    "votes": 2392,
-    "song": "Canlı yayın",
-    "codec": "AAC",
-    "homepage": "https://www.diyanetradyo.com/Canli-Dinle"
-  },
-  {
     "name": "Radyo 45lik yeni",
     "url": "https://stream.radyo45lik.com:4545/",
     "url_resolved": "https://stream.radyo45lik.com:4545/",
@@ -750,7 +736,7 @@
     "country": "Türkiye",
     "quality": "LIVE",
     "bitrate": 0,
-    "votes": 884,
+    "votes": 885,
     "song": "Canlı yayın",
     "codec": "UNKNOWN",
     "homepage": "http://halktv.com.tr/"
@@ -1680,6 +1666,20 @@
     "homepage": "https://moondigitalmaster.radyotvonline.net/altinsarkilar/playlist.m3u8"
   },
   {
+    "name": "Dost Radyo",
+    "url": "http://yayin1.yayindakiler.com:3156/;",
+    "url_resolved": "http://yayin1.yayindakiler.com:3156/;",
+    "genre": "Classical",
+    "language": "Turkish",
+    "country": "Türkiye",
+    "quality": "128 kbps",
+    "bitrate": 128,
+    "votes": 272,
+    "song": "Canlı yayın",
+    "codec": "AAC+",
+    "homepage": ""
+  },
+  {
     "name": "ROCK FM",
     "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
     "url_resolved": "http://nashe1.hostingradio.ru/rock-128.mp3",
@@ -1744,7 +1744,7 @@
     "country": "The United Kingdom Of Great Britain And Northern Ireland",
     "quality": "LIVE",
     "bitrate": 0,
-    "votes": 822,
+    "votes": 823,
     "song": "Canlı yayın",
     "codec": "UNKNOWN",
     "homepage": "https://www.bbc.co.uk/radio2"

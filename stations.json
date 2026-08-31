@@ -196,6 +196,20 @@
     "homepage": ""
   },
   {
+    "name": "dinamo.fm sleep",
+    "url": "http://channels.dinamo.fm/sleep-mp3",
+    "url_resolved": "http://channels.dinamo.fm/sleep-mp3",
+    "genre": "Lounge",
+    "language": "Turkish",
+    "country": "Türkiye",
+    "quality": "320 kbps",
+    "bitrate": 320,
+    "votes": 6081,
+    "song": "Canlı yayın",
+    "codec": "MP3",
+    "homepage": "http://www.dinamo.fm/"
+  },
+  {
     "name": "Radyo Seymen",
     "url": "https://yayin.radyoseymen.com.tr:1070/stream",
     "url_resolved": "https://yayin.radyoseymen.com.tr:1070/stream",
@@ -278,6 +292,20 @@
     "song": "Canlı yayın",
     "codec": "AAC+",
     "homepage": "https://palstation106.com/"
+  },
+  {
+    "name": "Turku Radyo",
+    "url": "http://radyo.turkuradyo.net:4591/turkuradyo",
+    "url_resolved": "http://radyo.turkuradyo.net:4591/turkuradyo",
+    "genre": "Türk Halk",
+    "language": "Turkish",
+    "country": "Türkiye",
+    "quality": "64 kbps",
+    "bitrate": 64,
+    "votes": 3805,
+    "song": "Canlı yayın",
+    "codec": "MP3",
+    "homepage": ""
   },
   {
     "name": "pop 90 turkey",
@@ -502,6 +530,20 @@
     "song": "Canlı yayın",
     "codec": "UNKNOWN",
     "homepage": "https://tv-trtmuzik.medya.trt.com.tr/master_720.m3u8"
+  },
+  {
+    "name": "Radyo Spor",
+    "url": "http://46.20.4.5:8170/",
+    "url_resolved": "http://46.20.4.5:8170/",
+    "genre": "Pop",
+    "language": "Turkish",
+    "country": "Türkiye",
+    "quality": "128 kbps",
+    "bitrate": 128,
+    "votes": 1413,
+    "song": "Canlı yayın",
+    "codec": "MP3",
+    "homepage": "http://www.radyospor.com/"
   },
   {
     "name": "Radyo Turkuvaz",
@@ -750,7 +792,7 @@
     "country": "Türkiye",
     "quality": "LIVE",
     "bitrate": 0,
-    "votes": 884,
+    "votes": 885,
     "song": "Canlı yayın",
     "codec": "UNKNOWN",
     "homepage": "http://halktv.com.tr/"
@@ -1260,6 +1302,20 @@
     "homepage": "https://moondigitaledge.radyotvonline.net/danceland/playlist.m3u8"
   },
   {
+    "name": "Radyo Slow Time",
+    "url": "http://46.20.7.103:8040/;",
+    "url_resolved": "http://46.20.7.103:8040/;",
+    "genre": "Classical",
+    "language": "Turkish",
+    "country": "Türkiye",
+    "quality": "112 kbps",
+    "bitrate": 112,
+    "votes": 487,
+    "song": "Canlı yayın",
+    "codec": "MP3",
+    "homepage": ""
+  },
+  {
     "name": "KRAL POP",
     "url": "https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8",
     "url_resolved": "https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8",
@@ -1384,6 +1440,20 @@
     "song": "Canlı yayın",
     "codec": "AAC+",
     "homepage": "http://gokkusagiradyo.kesintisizyayin.com:8008/"
+  },
+  {
+    "name": "Radyo Trafik 104.2 Ankara",
+    "url": "http://live2.radyotvonline.com:8000/",
+    "url_resolved": "http://live2.radyotvonline.com:8000/",
+    "genre": "Pop",
+    "language": "Turkish",
+    "country": "Türkiye",
+    "quality": "128 kbps",
+    "bitrate": 128,
+    "votes": 426,
+    "song": "Canlı yayın",
+    "codec": "AAC+",
+    "homepage": "http://radyotrafik.com/"
   },
   {
     "name": "powerturk",
@@ -1610,76 +1680,6 @@
     "homepage": ""
   },
   {
-    "name": "Radyo ODTU - Rock",
-    "url": "http://stream.radyoodtu.com.tr/rock",
-    "url_resolved": "http://stream.radyoodtu.com.tr/rock",
-    "genre": "Rock",
-    "language": "Turkish",
-    "country": "Türkiye",
-    "quality": "128 kbps",
-    "bitrate": 128,
-    "votes": 292,
-    "song": "Canlı yayın",
-    "codec": "AAC+",
-    "homepage": "https://www.radyoodtu.com.tr/"
-  },
-  {
-    "name": "A spor",
-    "url": "https://trkvz-radyolar.ercdn.net/asporradyo/chunklist.m3u8",
-    "url_resolved": "https://trkvz-radyolar.ercdn.net/asporradyo/chunklist.m3u8",
-    "genre": "Pop",
-    "language": "Turkish",
-    "country": "Türkiye",
-    "quality": "LIVE",
-    "bitrate": 0,
-    "votes": 290,
-    "song": "Canlı yayın",
-    "codec": "UNKNOWN",
-    "homepage": "https://trkvz-radyolar.ercdn.net/asporradyo/chunklist.m3u8"
-  },
-  {
-    "name": "Radio Mydonose",
-    "url": "https://29083.live.streamtheworld.com/RADIO_MYDONOSE128AAC.aac?/;stream.mp3",
-    "url_resolved": "https://29083.live.streamtheworld.com/RADIO_MYDONOSE128AAC.aac?/;stream.mp3",
-    "genre": "Pop",
-    "language": "Turkish",
-    "country": "Türkiye",
-    "quality": "128 kbps",
-    "bitrate": 128,
-    "votes": 287,
-    "song": "Canlı yayın",
-    "codec": "AAC+",
-    "homepage": "https://karnaval.com/radyolar/radiomydonose"
-  },
-  {
-    "name": "Radyo Gol",
-    "url": "https://edge1.radyotvonline.net/shoutcast/play/radyogol",
-    "url_resolved": "https://edge1.radyotvonline.net/shoutcast/play/radyogol",
-    "genre": "Pop",
-    "language": "Turkish",
-    "country": "Türkiye",
-    "quality": "128 kbps",
-    "bitrate": 128,
-    "votes": 285,
-    "song": "Canlı yayın",
-    "codec": "AAC",
-    "homepage": "https://edge1.radyotvonline.net/shoutcast/play/radyogol"
-  },
-  {
-    "name": "ALTIN ŞARKILAR",
-    "url": "https://moondigitalmaster.radyotvonline.net/altinsarkilar/playlist.m3u8",
-    "url_resolved": "https://moondigitalmaster.radyotvonline.net/altinsarkilar/playlist.m3u8",
-    "genre": "Pop",
-    "language": "Turkish",
-    "country": "Türkiye",
-    "quality": "128 kbps",
-    "bitrate": 128,
-    "votes": 274,
-    "song": "Canlı yayın",
-    "codec": "AAC",
-    "homepage": "https://moondigitalmaster.radyotvonline.net/altinsarkilar/playlist.m3u8"
-  },
-  {
     "name": "ROCK FM",
     "url": "http://nashe1.hostingradio.ru/rock-128.mp3",
     "url_resolved": "http://nashe1.hostingradio.ru/rock-128.mp3",
@@ -1744,7 +1744,7 @@
     "country": "The United Kingdom Of Great Britain And Northern Ireland",
     "quality": "LIVE",
     "bitrate": 0,
-    "votes": 822,
+    "votes": 823,
     "song": "Canlı yayın",
     "codec": "UNKNOWN",
     "homepage": "https://www.bbc.co.uk/radio2"
