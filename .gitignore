@@ -12,6 +12,7 @@ logs/
 
 .env
 .env.*
+!.env.example
 
 users.db.bin
 favorites.json
@@ -21,9 +22,14 @@ stations.backup.json
 service_status.json
 station_update_status.json
 
-.DS_Store
-Thumbs.db
-npm-debug.log*
+web/public/service_status.json
+web/public/station_status.json
 
 KeyfeKederRadyo-Web/
 KeyfeKederRadyo-Web_BACKUP_*.zip
+KeyfeKederRadyo_PreGitCleanup_*.zip
+
+.DS_Store
+Thumbs.db
+
+npm-debug.log*
