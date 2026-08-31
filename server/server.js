@@ -70,7 +70,7 @@ const __dirname = path.dirname(__filename);
  * KeyfeKederRadyo-Web
  */
 
-const ROOT = path.resolve(__dirname, "..", "..");
+const ROOT = path.resolve(__dirname, "..");
 
 const WEB = path.join(
   ROOT,
@@ -377,7 +377,7 @@ app.get(
       ok: true,
       service:
         "keyfe-keder-radyo-gateway",
-      version: "5.0.0",
+      version: "5.1.0",
       port: PORT,
       environment:
         process.env.NODE_ENV ||
@@ -401,7 +401,7 @@ app.get(
       service:
         "keyfe-keder-radyo-gateway",
 
-      version: "5.0.0",
+      version: "5.1.0",
 
       status: "online",
 
@@ -467,7 +467,7 @@ app.get(
         return sendError(
           res,
           404,
-          "stations.json bulunamadÄ±."
+          "stations.json bulunamadı."
         );
       }
 
@@ -506,7 +506,7 @@ app.get(
       sendError(
         res,
         500,
-        "Ä°stasyon listesi okunamadÄ±."
+        "İstasyon listesi okunamadı."
       );
     }
   }
@@ -528,7 +528,7 @@ app.get(
       return sendError(
         res,
         400,
-        "GeÃ§erli URL gerekli."
+        "Geçerli URL gerekli."
       );
     }
 
@@ -566,7 +566,7 @@ app.get(
               Date.now() -
               start,
             message:
-              "YayÄ±n zaman aÅŸÄ±mÄ±na uÄŸradÄ±.",
+              "Yayın zaman aşımına uğradı.",
           });
         },
         7000
@@ -578,7 +578,7 @@ app.get(
 
         {
           "User-Agent":
-            "Keyfe-Keder-Radyo/5.0",
+            "Keyfe-Keder-Radyo/5.1",
 
           Accept:
             "*/*",
@@ -681,7 +681,7 @@ app.get(
 
         {
           "User-Agent":
-            "Keyfe-Keder-Radyo/5.0",
+            "Keyfe-Keder-Radyo/5.1",
 
           Accept:
             "*/*",
@@ -1068,7 +1068,7 @@ app.get(
         {
           headers: {
             "User-Agent":
-              "Keyfe-Keder-Radyo/5.0",
+              "Keyfe-Keder-Radyo/5.1",
 
             Accept:
               "*/*",
@@ -1406,7 +1406,7 @@ app.get(
           {
             headers: {
               "User-Agent":
-                "Keyfe-Keder-Radyo/5.0",
+                "Keyfe-Keder-Radyo/5.1",
             },
           }
         );
@@ -2256,7 +2256,7 @@ function copyStationsToPublic() {
     )
   ) {
     throw new Error(
-      `Ana stations.json bulunamadÄ±: ${ROOT_STATIONS}`
+      `Ana stations.json bulunamadı: ${ROOT_STATIONS}`
     );
   }
 
@@ -2784,3 +2784,4 @@ process.on(
 ========================================================= */
 
 startServer();
+
