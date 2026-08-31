@@ -18,6 +18,9 @@ favorites.json
 settings.json
 stations.backup.json
 
+service_status.json
+station_update_status.json
+
 .DS_Store
 Thumbs.db
 npm-debug.log*
