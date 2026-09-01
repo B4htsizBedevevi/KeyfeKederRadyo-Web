@@ -1,12 +1,12 @@
 {
   "name": "keyfe-keder-radyo-gateway",
-  "version": "5.1.3",
+  "version": "5.1.4",
   "private": true,
   "type": "module",
   "scripts": {
     "prestart": "cd ../web && npm install && npm run build",
-    "start": "node ../web-entry.js",
-    "dev": "node --watch ../web-entry.js"
+    "start": "node entry.js",
+    "dev": "node --watch entry.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
