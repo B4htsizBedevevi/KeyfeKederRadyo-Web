@@ -5,8 +5,9 @@ const http = require("node:http");
 const { spawn } = require("node:child_process");
 
 const ROOT = __dirname;
-const PUBLIC_PORT = Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 8787;
-const INTERNAL_PORT = 8788;
+const parsedPort = Number(process.env.PORT);
+const PUBLIC_PORT = Number.isInteger(parsedPort) && parsedPort > 0 && parsedPort <= 65535 ? parsedPort : 8787;
+const INTERNAL_PORT = PUBLIC_PORT === 8788 ? 8787 : 8788;
 const HOST = "0.0.0.0";
 const DIST = path.join(ROOT, "web", "dist");
 const GATEWAY = path.join(ROOT, "server", "server.js");
@@ -16,9 +17,7 @@ app.disable("x-powered-by");
 let gateway = null;
 let shuttingDown = false;
 
-function log(...args) {
-  console.log(new Date().toISOString(), ...args);
-}
+function log(...args) { console.log(new Date().toISOString(), ...args); }
 
 function proxyToGateway(req, res) {
   const proxy = http.request({
@@ -26,20 +25,14 @@ function proxyToGateway(req, res) {
     port: INTERNAL_PORT,
     path: req.originalUrl || req.url,
     method: req.method,
-    headers: {
-      ...req.headers,
-      host: `127.0.0.1:${INTERNAL_PORT}`,
-    },
+    headers: { ...req.headers, host: `127.0.0.1:${INTERNAL_PORT}` },
   }, (upstream) => {
     res.statusCode = upstream.statusCode || 502;
     for (const [key, value] of Object.entries(upstream.headers)) {
-      if (value !== undefined) {
-        try { res.setHeader(key, value); } catch {}
-      }
+      if (value !== undefined) { try { res.setHeader(key, value); } catch {} }
     }
     upstream.pipe(res);
   });
-
   proxy.setTimeout(20000, () => proxy.destroy(new Error("Gateway timeout")));
   proxy.on("error", (error) => {
     log("[PROXY ERROR]", error.message);
@@ -55,9 +48,9 @@ app.use("/api", proxyToGateway);
 
 if (fs.existsSync(path.join(DIST, "index.html"))) {
   app.use(express.static(DIST, { index: "index.html", maxAge: "1h" }));
-  app.get("*", (req, res) => {
+  app.use((req, res) => {
     if (req.method === "GET" || req.method === "HEAD") return res.sendFile(path.join(DIST, "index.html"));
-    res.status(404).json({ ok: false, error: "Not found" });
+    return res.status(404).json({ ok: false, error: "Not found" });
   });
 } else {
   app.get("/", (_req, res) => res.status(503).json({ ok: false, error: "Web build bulunamadı." }));
@@ -89,8 +82,8 @@ const server = app.listen(PUBLIC_PORT, HOST, () => {
 });
 
 server.on("error", (error) => {
-  log("[PUBLIC SERVER ERROR]", error.message);
-  process.exitCode = 1;
+  log("[PUBLIC SERVER ERROR]", error.stack || error.message);
+  process.exit(1);
 });
 
 startGateway();
@@ -109,5 +102,5 @@ function shutdown(signal) {
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("uncaughtException", (error) => log("[UNCAUGHT]", error.stack || error));
-process.on("unhandledRejection", (reason) => log("[UNHANDLED]", reason));
+process.on("uncaughtException", (error) => { log("[UNCAUGHT]", error.stack || error); });
+process.on("unhandledRejection", (reason) => { log("[UNHANDLED]", reason); });
