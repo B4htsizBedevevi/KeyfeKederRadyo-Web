@@ -1,0 +1,11 @@
+{
+  "name": "keyfe-keder-radyo",
+  "version": "5.1.5",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cd web && npm install && npm run build && cd ../server && npm install",
+    "start": "node server/entry.js",
+    "dev": "npm run build && node server/entry.js"
+  }
+}
