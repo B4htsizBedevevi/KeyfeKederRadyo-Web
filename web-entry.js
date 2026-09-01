@@ -1,17 +1,17 @@
-import express from "express";
-import fs from "node:fs";
-import path from "node:path";
-import http from "node:http";
-import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
+"use strict";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require("express");
+const fs = require("node:fs");
+const path = require("node:path");
+const http = require("node:http");
+const { spawn } = require("node:child_process");
 
+const ROOT = __dirname;
 const PUBLIC_PORT = Number(process.env.PORT) || 8787;
-const INTERNAL_PORT = Number(process.env.INTERNAL_PORT) || 8788;
+const INTERNAL_PORT = Number(process.env.INTERNAL_PORT) || (PUBLIC_PORT === 8787 ? 8788 : 8788);
 const HOST = "0.0.0.0";
-const DIST = path.join(__dirname, "web", "dist");
+const DIST = path.join(ROOT, "web", "dist");
+const GATEWAY = path.join(ROOT, "server", "server.js");
 
 const app = express();
 app.disable("x-powered-by");
@@ -24,7 +24,7 @@ function log(...args) {
 }
 
 function proxyToGateway(req, res) {
-  const options = {
+  const proxy = http.request({
     hostname: "127.0.0.1",
     port: INTERNAL_PORT,
     path: req.originalUrl,
@@ -32,11 +32,8 @@ function proxyToGateway(req, res) {
     headers: {
       ...req.headers,
       host: `127.0.0.1:${INTERNAL_PORT}`,
-      connection: "keep-alive",
     },
-  };
-
-  const proxy = http.request(options, (upstream) => {
+  }, (upstream) => {
     res.statusCode = upstream.statusCode || 502;
     for (const [key, value] of Object.entries(upstream.headers)) {
       if (value !== undefined) res.setHeader(key, value);
@@ -47,9 +44,12 @@ function proxyToGateway(req, res) {
   proxy.setTimeout(20000, () => proxy.destroy(new Error("Gateway timeout")));
 
   proxy.on("error", (error) => {
-    log("[PROXY]", error.message);
+    log("[PROXY ERROR]", error.message);
     if (!res.headersSent) {
-      res.status(502).json({ ok: false, error: "Gateway bağlantısı kurulamadı." });
+      res.status(502).json({
+        ok: false,
+        error: "Gateway bağlantısı kurulamadı.",
+      });
     } else {
       res.end();
     }
@@ -62,28 +62,30 @@ function proxyToGateway(req, res) {
   });
 }
 
-// API ve radyo stream istekleri gateway'e gider.
 app.use("/api", proxyToGateway);
 
-// React/Vite production build aynı public porttan sunulur.
 if (fs.existsSync(DIST)) {
-  app.use(express.static(DIST, { index: "index.html", maxAge: "1h" }));
+  app.use(express.static(DIST, {
+    index: "index.html",
+    maxAge: "1h",
+  }));
 
-  // Express 5 uyumlu SPA fallback.
   app.use((req, res) => {
-    if (req.method === "GET" && !req.path.startsWith("/api")) {
-      return res.sendFile(path.join(DIST, "index.html"));
+    if (req.method === "GET") {
+      const indexFile = path.join(DIST, "index.html");
+      if (fs.existsSync(indexFile)) return res.sendFile(indexFile);
     }
-    return res.status(404).end();
+    return res.status(404).json({ ok: false, error: "Not found" });
   });
 } else {
   app.get("/", (_req, res) => {
-    res.status(503).send("Web build bulunamadı. Lütfen yeniden deploy edin.");
+    res.status(503).send("Web build bulunamadı.");
   });
 }
 
 function startGateway() {
-  gateway = spawn(process.execPath, [path.join(__dirname, "server", "server.js")], {
+  gateway = spawn(process.execPath, [GATEWAY], {
+    cwd: path.join(ROOT, "server"),
     env: {
       ...process.env,
       PORT: String(INTERNAL_PORT),
@@ -110,23 +112,31 @@ const server = app.listen(PUBLIC_PORT, HOST, () => {
   log("================================================");
 });
 
+server.on("error", (error) => {
+  log("[PUBLIC SERVER ERROR]", error.message);
+});
+
 startGateway();
 
 function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
-  log(`${signal} alındı. Sunucular kapatılıyor...`);
+  log(`${signal} alındı. Kapatılıyor...`);
 
-  server.close(() => {
+  try { server.close(); } catch {}
+  try {
     if (gateway && !gateway.killed) gateway.kill("SIGTERM");
-    process.exit(0);
-  });
+  } catch {}
 
   setTimeout(() => {
-    try { if (gateway && !gateway.killed) gateway.kill("SIGKILL"); } catch {}
-    process.exit(1);
-  }, 10000).unref();
+    try {
+      if (gateway && !gateway.killed) gateway.kill("SIGKILL");
+    } catch {}
+    process.exit(0);
+  }, 5000).unref();
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("uncaughtException", (error) => log("[UNCAUGHT]", error));
+process.on("unhandledRejection", (reason) => log("[UNHANDLED]", reason));
