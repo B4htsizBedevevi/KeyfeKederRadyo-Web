@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="radio_bg">#121212</color>
+    <color name="radio_surface">#202020</color>
+    <color name="radio_surface_2">#292929</color>
+    <color name="radio_orange">#FF7A00</color>
+    <color name="radio_text">#F5F5F5</color>
+    <color name="radio_muted">#9E9E9E</color>
+</resources>
