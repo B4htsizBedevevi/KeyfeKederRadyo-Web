@@ -28,9 +28,9 @@ class StationAdapter(
         val row = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(18), dp(10), dp(10), dp(10))
+            setPadding(18.dp(context), 10.dp(context), 10.dp(context), 10.dp(context))
             setBackgroundColor(Color.TRANSPARENT)
-            layoutParams = RecyclerView.LayoutParams(-1, dp(78))
+            layoutParams = RecyclerView.LayoutParams(-1, 78.dp(context))
         }
 
         val logo = TextView(context).apply {
@@ -40,10 +40,10 @@ class StationAdapter(
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.rgb(45, 45, 45))
-                setStroke(dp(1), Color.rgb(90, 90, 90))
+                setStroke(1.dp(context), Color.rgb(90, 90, 90))
             }
-            layoutParams = LinearLayout.LayoutParams(dp(54), dp(54)).apply {
-                rightMargin = dp(14)
+            layoutParams = LinearLayout.LayoutParams(54.dp(context), 54.dp(context)).apply {
+                rightMargin = 14.dp(context)
             }
         }
 
@@ -62,21 +62,20 @@ class StationAdapter(
             setTextColor(Color.rgb(155, 155, 155))
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
-            setPadding(0, dp(3), 0, 0)
+            setPadding(0, 3.dp(context), 0, 0)
         }
         text.addView(title)
         text.addView(meta)
 
         val fav = ImageView(context).apply {
-            setPadding(dp(8), dp(8), dp(8), dp(8))
-            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
+            setPadding(8.dp(context), 8.dp(context), 8.dp(context), 8.dp(context))
+            layoutParams = LinearLayout.LayoutParams(48.dp(context), 48.dp(context))
             setImageResource(android.R.drawable.btn_star_big_off)
         }
 
         row.addView(logo)
         row.addView(text)
         row.addView(fav)
-
         return Holder(row, logo, title, meta, fav)
     }
 
@@ -104,11 +103,6 @@ class StationAdapter(
         .take(2)
         .joinToString("") { it.first().uppercaseChar().toString() }
         .ifBlank { "FM" }
-
-    private fun dp(value: Int): Int = (value * itemViewDensity).toInt()
-
-    private val itemViewDensity: Float
-        get() = 1f
 
     class Holder(
         view: android.view.View,
