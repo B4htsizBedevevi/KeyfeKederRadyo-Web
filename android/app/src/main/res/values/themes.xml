@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.KeyfeKederRadyo" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/radio_bg</item>
+        <item name="android:navigationBarColor">@color/radio_bg</item>
+        <item name="android:colorAccent">@color/radio_orange</item>
+        <item name="colorPrimary">@color/radio_orange</item>
+        <item name="colorPrimaryVariant">@color/radio_orange</item>
+    </style>
+</resources>
