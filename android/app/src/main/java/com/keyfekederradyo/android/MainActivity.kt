@@ -7,14 +7,13 @@ import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
@@ -26,7 +25,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.common.util.concurrent.ListenableFuture
 import java.util.concurrent.Executors
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val orange = Color.rgb(255, 122, 0)
     private val bg = Color.rgb(18, 18, 18)
     private val surface = Color.rgb(32, 32, 32)
